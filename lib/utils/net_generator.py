@@ -1,283 +1,271 @@
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from string import ascii_lowercase
 import collections
+import caffe
 from caffe import layers as L, params as P, to_proto
 
-def data_layer(classes):
-    data, im_info, gt_boxes = L.Python(
-                          name = 'input-data',
-                          python_param=dict(
-                                          module='roi_data_layer.layer',
-                                          layer='RoIDataLayer',
-                                          param_str='"num_classes": %s' %(classes)),
-                          ntop=3,)
-    return data, im_info, gt_boxes
-
-def pooling_layer(kernel_size, stride, pool_type, layer_name, bottom):
-    pooling = L.Pooling(bottom, name = layer_name, pool=eval("P.Pooling." + pool_type), kernel_size=kernel_size, stride=stride)
-    return pooling
-
-def ave_pool(kernel_size, stride, layer_name, bottom):
-    return pooling_layer(kernel_size, stride, 'AVE', layer_name, bottom)
 
 
-def softmax_loss(bottom, label):
-    softmax_loss = L.SoftmaxWithLoss(bottom, label)
-    return softmax_loss
+class ResNet(): 
+    def __init__(self, stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, anchors = 9, feat_stride = 16, module = "normal", pooling = "align"):
+        self.stages = stages
+        self.channals = channals
+        self.deploy = deploy
+        self.classes = classes
+        self.anchors = anchors
+        self.feat_stride = feat_stride
+        self.module = module
+        self.net = caffe.NetSpec()
+        self.pooling = pooling
 
-def roi_align(bottom, roi, stride, pooling, pooled_w=7, pooled_h=7):
-    if pooling == "align":
-        roi_align = L.ROIAlign(bottom, roi, name = "ROIAlign", roi_align_param = {
-                "pooled_w": pooled_w,
-                "pooled_h": pooled_h,
-                "spatial_scale": 1/stride})
-    else:
-        roi_align = L.ROIPooling(bottom, roi, name = "ROIPooling",roi_pooling_param = {
-                "pooled_w": pooled_w,
-                "pooled_h": pooled_h,
-                "spatial_scale": 1/stride})
-    return roi_align
+    def roi_align(self, bottom, roi, pooled_w=7, pooled_h=7):
+        if self.pooling == "align":
+            self.net["ROIAlign"] = L.ROIAlign(bottom, roi, roi_align_param = {
+                    "pooled_w": pooled_w,
+                    "pooled_h": pooled_h,
+                    "spatial_scale": 1/float(self.feat_stride)})
+            return self.net["ROIAlign"]
+        else:
+            self.net["ROIPooling"] = L.ROIPooling(bottom, roi, roi_pooling_param = {
+                    "pooled_w": pooled_w,
+                    "pooled_h": pooled_h,
+                    "spatial_scale": 1/float(self.feat_stride)})
+            return self.net["ROIPooling"]
 
-def conv_factory(name, bottom, ks, nout, stride=1, pad=0, deploy=False):
-    conv = L.Convolution(bottom, name = name, kernel_size=ks, stride=stride,
-                                num_output=nout, pad=pad, bias_term=False, weight_filler=dict(type='msra'))
-    if "res" in name:
-        name_new = name.split("_")[1]
-        batch_norm = L.BatchNorm(conv, name = "bn_" + name_new, in_place=True, batch_norm_param=dict(use_global_stats=deploy))
-        scale = L.Scale(batch_norm, name = "scale_" + name_new, in_place=True, scale_param=dict(bias_term=True))
-    else:
-        batch_norm = L.BatchNorm(conv, name = "bn_" + name, in_place=True, batch_norm_param=dict(use_global_stats=deploy))
-        scale = L.Scale(batch_norm, name = "scale_" + name, in_place=True, scale_param=dict(bias_term=True))
-    relu = L.ReLU(scale, name = name + "_relu" , in_place=True)
-    return relu
+    def conv_factory(self, name, bottom, ks, nout, stride=1, pad=0):
+        self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
+                                    num_output=nout, pad=pad, bias_term=False, weight_filler=dict(type='msra'))
+        if "res" in name:
+            name_new = name.split("_")[1]
+            self.net[name.replace("res", "bn")] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
+            self.net[name.replace("res", "scale")]  = L.Scale(self.net[name.replace("res", "bn")], in_place=True, scale_param=dict(bias_term=True))
+            self.net[name + "_relu"] = L.ReLU(self.net[name.replace("res", "scale")], in_place=True)
+        else:
+            self.net["bn_" + name] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
+            self.net["scale_" + name] = L.Scale(self.net["bn_" + name], in_place=True, scale_param=dict(bias_term=True))
+            self.net[name + "_relu"] = L.ReLU(self.net["scale_" + name], in_place=True)
+        return self.net[name + "_relu"]
 
-def conv_factory_inverse_no_relu(name, bottom, ks, nout, stride=1, pad=0, deploy=False):
-    conv = L.Convolution(bottom, name = name, kernel_size=ks, stride=stride,
-                                num_output=nout, pad=pad, weight_filler=dict(type='msra'))
-    batch_norm = L.BatchNorm(conv, name = "bn_" + name, in_place=True, batch_norm_param=dict(use_global_stats=deploy))
-    scale = L.Scale(batch_norm, name = "scale_" + name, in_place=True, scale_param=dict(bias_term=True))
-    return scale
+    def conv_factory_inverse_no_relu(self, name, bottom, ks, nout, stride=1, pad=0, deploy=False):
+        self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
+                                    num_output=nout, pad=pad, weight_filler=dict(type='msra'))
+        self.net["bn_" + name] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
+        self.net["scale_" + name] = L.Scale(self.net["bn_" + name], in_place=True, scale_param=dict(bias_term=True))
+        return self.net["scale_" + name]
 
-def residual_block_shortcut(name, bottom, num_filter, stride=1, deploy=False):
-    conv1 = conv_factory(name + "_branch2a", bottom, 1, num_filter, stride, 0, deploy)
-    conv2 = conv_factory(name + "_branch2b", conv1, 3, num_filter, stride, 1, deploy)
-    conv3 = conv_factory_inverse_no_relu(name + "_branch2c", conv2, 1, 4 * num_filter, stride, 0, deploy)
-    addition = L.Eltwise(bottom, conv3, name = name, operation=P.Eltwise.SUM)
-    relu = L.ReLU(addition, name = name + "_relu" , in_place=True)
-    return relu
+    def rpn(self, bottom, gt_boxes, im_info, data):
+        self.net["rpn_conv/3x3"] = L.Convolution(bottom, kernel_size=3, stride=1,
+                                    num_output=512, pad=1,
+                                    param= [{'lr_mult':1},{'lr_mult':2}],
+                                    weight_filler=dict(type='gaussian', std=0.01),
+                                    bias_filler=dict(type='constant', value=0))
+        self.net["rpn_relu/3x3"] = L.ReLU(self.net["rpn_conv/3x3"] , in_place=True)
+        self.net["rpn_cls_score"] = L.Convolution(self.net["rpn_relu/3x3"], kernel_size=1, stride=1,
+                                    num_output= 2 * self.anchors, pad=0,
+                                    param= [{'lr_mult':1},{'lr_mult':2}],
+                                    weight_filler=dict(type='gaussian', std=0.01),
+                                    bias_filler=dict(type='constant', value=0))
+        self.net["rpn_bbox_pred"] = L.Convolution(self.net["rpn_relu/3x3"], kernel_size=1, stride=1,
+                                    num_output= 4 * self.anchors, pad=0,
+                                    param= [{'lr_mult':1},{'lr_mult':2}],
+                                    weight_filler=dict(type='gaussian', std=0.01),
+                                    bias_filler=dict(type='constant', value=0))
+        self.net["rpn_cls_score_reshape"] = L.Reshape(self.net["rpn_cls_score"],
+                                    reshape_param= {"shape" : { "dim": [0, 2, -1, 0]}})
 
-
-def residual_block(name, bottom, num_filter, stride=1, deploy=False):
-    conv1 = conv_factory(name + "_branch2a",bottom, 1, num_filter, stride, 0, deploy)
-    conv2 = conv_factory(name + "_branch2b",conv1, 3, num_filter, 1, 1, deploy)
-    conv3 = conv_factory_inverse_no_relu(name + "_branch2c", conv2, 1, 4 * num_filter, 1, 0, deploy)
-    conv1_2 = conv_factory_inverse_no_relu(name + "_branch1", bottom, 1, 4 * num_filter, stride, 0, deploy)
-    addition = L.Eltwise(conv3, conv1_2, name = name, operation=P.Eltwise.SUM)
-    relu = L.ReLU(addition, name = name + "_relu" , in_place=True)
-    return relu
-
-def residual_block_shortcut_basic(name, bottom, num_filter, stride=1, deploy=False):
-    conv1 = conv_factory(name + "_branch2b", bottom, 3, num_filter, stride, 1, deploy)
-    conv2 = conv_factory_inverse_no_relu(name + "_branch2c", conv1, 3, 4 * num_filter, stride, 1, deploy)
-    addition = L.Eltwise(bottom, conv2, name = name, operation=P.Eltwise.SUM)
-    relu = L.ReLU(addition, name = name + "_relu" , in_place=True)
-    return relu
-
-
-def residual_block_basic(name, bottom, num_filter, stride=1, deploy=False):
-    conv1 = conv_factory(name + "_branch2b",bottom, 3, num_filter, 1, 1, deploy)
-    conv2 = conv_factory_inverse_no_relu(name + "_branch2c", conv1, 3, 4 * num_filter, 1, 0, deploy)
-    conv1_2 = conv_factory_inverse_no_relu(name + "_branch1", bottom, 1, 4 * num_filter, stride, 0, deploy)
-    addition = L.Eltwise(conv2, conv1_2, name = name, operation=P.Eltwise.SUM)
-    relu = L.ReLU(addition, name = name + "_relu" , in_place=True)
-    return relu
-
-
-def rpn(bottom, gt_boxes, im_info, data, anchors = 9, deploy=False):
-    conv = L.Convolution(bottom, name = "rpn_conv/3x3", kernel_size=3, stride=1,
-                                num_output=512, pad=1,
-                                param= [{'lr_mult':1},{'lr_mult':2}],
-                                weight_filler=dict(type='gaussian', std=0.01),
-                                bias_filler=dict(type='constant', value=0))
-    relu = L.ReLU(conv, name = "rpn_relu/3x3" , in_place=True)
-    rpn_cls_score = L.Convolution(relu, name = "rpn_cls_score", kernel_size=1, stride=1,
-                                num_output= 2 * anchors, pad=0,
-                                param= [{'lr_mult':1},{'lr_mult':2}],
-                                weight_filler=dict(type='gaussian', std=0.01),
-                                bias_filler=dict(type='constant', value=0))
-    rpn_bbox_pred = L.Convolution(relu, name = "rpn_bbox_pred", kernel_size=1, stride=1,
-                                num_output= 4 * anchors, pad=0,
-                                param= [{'lr_mult':1},{'lr_mult':2}],
-                                weight_filler=dict(type='gaussian', std=0.01),
-                                bias_filler=dict(type='constant', value=0))
-    rpn_cls_score_reshape = L.Reshape(rpn_cls_score, name = "rpn_cls_score_reshape", reshape_param= {"shape" : { "dim": [0, 2, -1, 0]}})
-
-    
-    if not deploy:
-        rpn_labels, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights = \
-                    L.Python(rpn_cls_score, gt_boxes, im_info, data,
-                          name = 'rpn-data',
-                          python_param=dict(
-                                          module='rpn.anchor_target_layer',
-                                          layer='AnchorTargetLayer',
-                                          param_str='"feat_stride": %s' %(16)),
-                          ntop=4,)
-        rpn_cls_loss = L.SoftmaxWithLoss(rpn_cls_score_reshape, rpn_labels, name = "rpn_loss_cls", propagate_down=[1,0],\
-                        loss_weight = 1, loss_param = {"ignore_label": -1, "normalize": True})
-        rpn_loss_bbox = L.SmoothL1Loss(rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights, \
-                        name= "loss_bbox", loss_weight = 1, smooth_l1_loss_param = {"sigma": 3.0})
-        return rpn_cls_loss, rpn_loss_bbox, rpn_cls_score_reshape, rpn_bbox_pred
-    else:
-        return rpn_cls_score_reshape, rpn_bbox_pred
+        if not self.deploy:
+            self.net["rpn_labels"], self.net["rpn_bbox_targets"], self.net["rpn_bbox_inside_weights"], self.net["rpn_bbox_outside_weights"] = \
+                        L.Python(self.net["rpn_cls_score"], gt_boxes, im_info, data,
+                            name = 'rpn-data',
+                            python_param=dict(
+                                            module='rpn.anchor_target_layer',
+                                            layer='AnchorTargetLayer',
+                                            param_str='"feat_stride": %s' %(self.feat_stride)),
+                            ntop=4,)
+            self.net["rpn_cls_loss"] = L.SoftmaxWithLoss(self.net["rpn_cls_score_reshape"], self.net["rpn_labels"], name = "rpn_loss_cls", propagate_down=[1,0],\
+                            loss_weight = 1, loss_param = {"ignore_label": -1, "normalize": True})
+            self.net["rpn_loss_bbox"] = L.SmoothL1Loss(self.net["rpn_bbox_pred"], self.net["rpn_bbox_targets"], \
+                            self.net["rpn_bbox_inside_weights"], self.net["rpn_bbox_outside_weights"], \
+                            name= "loss_bbox", loss_weight = 1, smooth_l1_loss_param = {"sigma": 3.0})
+            return self.net["rpn_cls_loss"], self.net["rpn_loss_bbox"], self.net["rpn_cls_score_reshape"], self.net["rpn_bbox_pred"]
+        else:
+            return self.net["rpn_cls_score_reshape"], self.net["rpn_bbox_pred"]
         
 
-def roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes, classes, feat_stride = 16, deploy=False):
-    rpn_cls_prob = L.Softmax(rpn_cls_score_reshape, name = "rpn_cls_prob")
-    rpn_cls_prob_reshape = L.Reshape(rpn_cls_prob, name = "rpn_cls_prob_reshape", \
-                reshape_param= {"shape" : { "dim": [0, 18, -1, 0]}})
-    rpn_rois = L.Python(rpn_cls_prob_reshape, rpn_bbox_pred, im_info, 
-                    name = 'proposal',
-                    python_param=dict(
-                                    module='rpn.proposal_layer',
-                                    layer='ProposalLayer',
-                                    param_str='"feat_stride": %s' %(feat_stride)),
-                    ntop=1,)
-    
-    if not deploy:
-        rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = \
-                    L.Python(rpn_rois, gt_boxes,
-                        name = 'roi-data',
-                        python_param=dict(
-                                        module='rpn.proposal_target_layer',
-                                        layer='ProposalTargetLayer',
-                                        param_str='"num_classes": %s' %(classes)),
-                        ntop=5,)
-        return rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights
-    else:
-        return rpn_rois
+    def roi_proposals(self, rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes):
+        self.net["rpn_cls_prob"] = L.Softmax(rpn_cls_score_reshape, name = "rpn_cls_prob")
+        self.net["rpn_cls_prob_reshape"] = L.Reshape(self.net["rpn_cls_prob"], name = "rpn_cls_prob_reshape", \
+                    reshape_param= {"shape" : { "dim": [0, 18, -1, 0]}})
+        
+        if not self.deploy:
+            self.net["rpn_rois"] = L.Python(self.net["rpn_cls_prob_reshape"], rpn_bbox_pred, im_info, 
+                            name = 'proposal',
+                            python_param=dict(
+                                            module='rpn.proposal_layer',
+                                            layer='ProposalLayer',
+                                            param_str='"feat_stride": %s' %(self.feat_stride)),
+                            ntop=1,)
+            self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], self.net["bbox_outside_weights"] = \
+                        L.Python(self.net["rpn_rois"], self.net["gt_boxes"],
+                            name = 'roi-data',
+                            python_param=dict(
+                                            module='rpn.proposal_target_layer',
+                                            layer='ProposalTargetLayer',
+                                            param_str='"num_classes": %s' %(self.classes)),
+                            ntop=5,)
+            return self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], self.net["bbox_outside_weights"]
+        else:
+            self.net["rois"] = L.Python(self.net["rpn_cls_prob_reshape"], rpn_bbox_pred, im_info, 
+                            name = 'proposal',
+                            python_param=dict(
+                                            module='rpn.proposal_layer',
+                                            layer='ProposalLayer',
+                                            param_str='"feat_stride": %s' %(self.feat_stride)),
+                            ntop=1,)
+            return self.net["rois"]
 
 
-def final_cls_bbox(bottom, classes):
-    cls_score = L.InnerProduct(bottom, name = "cls_score",
-                            num_output= classes,
-                            param= [{'lr_mult':1},{'lr_mult':2}],
-                            weight_filler=dict(type='gaussian', std=0.001),
-                            bias_filler=dict(type='constant', value=0))
-    bbox_pred = L.InnerProduct(bottom, name = "bbox_pred",
-                            num_output= 4 * classes,
-                            param= [{'lr_mult':1},{'lr_mult':2}],
-                            weight_filler=dict(type='gaussian', std=0.001),
-                            bias_filler=dict(type='constant', value=0))
-    return cls_score, bbox_pred
+    def final_cls_bbox(self, bottom):
+        self.net["cls_score"] = L.InnerProduct(bottom, name = "cls_score",
+                                num_output= self.classes,
+                                param= [{'lr_mult':1},{'lr_mult':2}],
+                                weight_filler=dict(type='gaussian', std=0.001),
+                                bias_filler=dict(type='constant', value=0))
+        self.net["bbox_pred"] = L.InnerProduct(bottom, name = "bbox_pred",
+                                num_output= 4 * self.classes,
+                                param= [{'lr_mult':1},{'lr_mult':2}],
+                                weight_filler=dict(type='gaussian', std=0.001),
+                                bias_filler=dict(type='constant', value=0))
+        return self.net["cls_score"], self.net["bbox_pred"]
 
+    def data_layer(self):
+        if not self.deploy:
+            self.net["data"], self.net["im_info"], self.net["gt_boxes"] = L.Python(
+                                name = 'input-data',
+                                python_param=dict(
+                                                module='roi_data_layer.layer',
+                                                layer='RoIDataLayer',
+                                                param_str='"num_classes": %s' %(self.classes)),
+                                ntop=3,)
+        else:
+            self.net["data"] = L.DummyData(shape=[dict(dim=[1, 3, 224, 224])])
+            self.net["im_info"] = L.DummyData(shape=[dict(dim=[1, 3])])
+            self.net["gt_boxes"] = L.DummyData(shape=[dict(dim=[1])])
+        return self.net["data"], self.net["im_info"], self.net["gt_boxes"]
 
-def resnet(stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, anchors = 9, feat_stride = 16, module = "normal"):
-    data, label = L.Data(source="", backend=P.Data.LMDB, batch_size=1, ntop=2,
-        transform_param=dict(crop_size=224, mean_value=[104, 117, 123], mirror=True))
-    # out = conv_layer((7, 64, 2), 'conv1', data)
-    # out = in_place_bn('_conv1', out)
-    # out = in_place_relu('conv1', out)
-    out = conv_factory("conv1", data, 7, channals, 2, 3)
-    out = pooling_layer(3, 2, 'MAX', 'pool1', out)
+    def pooling_layer(self, kernel_size, stride, pool_type, layer_name, bottom):
+        self.net[layer_name] = L.Pooling(bottom, pool=eval("P.Pooling." + pool_type), kernel_size=kernel_size, stride=stride)
+        return self.net[layer_name]
 
-    k=0
-    index = 1
-    for i in stages:
+    def ave_pool(self, kernel_size, stride, layer_name, bottom):
+        return self.pooling_layer(kernel_size, stride, 'AVE', layer_name, bottom)
+
+    def residual_block_shortcut(self, name, bottom, num_filter, stride=1):
+        conv1 = self.conv_factory(name + "_branch2a", bottom, 1, num_filter, stride, 0)
+        conv2 = self.conv_factory(name + "_branch2b", conv1, 3, num_filter, stride, 1)
+        conv3 = self.conv_factory_inverse_no_relu(name + "_branch2c", conv2, 1, 4 * num_filter, stride, 0)
+        self.net[name] = L.Eltwise(bottom, conv3, operation=P.Eltwise.SUM)
+        self.net[name + "_relu"] = L.ReLU(self.net[name], in_place=True)
+        return self.net[name + "_relu"]
+
+    def residual_block(self, name, bottom, num_filter, stride=1):
+        conv1 = self.conv_factory(name + "_branch2a",bottom, 1, num_filter, stride, 0)
+        conv2 = self.conv_factory(name + "_branch2b",conv1, 3, num_filter, 1, 1)
+        conv3 = self.conv_factory_inverse_no_relu(name + "_branch2c", conv2, 1, 4 * num_filter, 1, 0)
+        conv1_2 = self.conv_factory_inverse_no_relu(name + "_branch1", bottom, 1, 4 * num_filter, stride, 0)
+        self.net[name] = L.Eltwise(conv3, conv1_2, operation=P.Eltwise.SUM)
+        self.net[name + "_relu"] = L.ReLU(self.net[name], in_place=True)
+        return self.net[name + "_relu"]
+
+    def residual_block_shortcut_basic(self, name, bottom, num_filter, stride=1, deploy=False):
+        conv1 = self.conv_factory(name + "_branch2b", bottom, 3, num_filter, stride, 1)
+        conv2 = self.conv_factory_inverse_no_relu(name + "_branch2c", conv1, 3, 4 * num_filter, stride, 1)
+        self.net[name] = L.Eltwise(bottom, conv2, name = name, operation=P.Eltwise.SUM)
+        self.net[name + "_relu"] = L.ReLU(self.net[name], name = name + "_relu" , in_place=True)
+        return self.net[name + "_relu"]
+        
+    def residual_block_basic(self, name, bottom, num_filter, stride=1, deploy=False):
+        conv1 = self.cconv_factory(name + "_branch2b",bottom, 3, num_filter, 1, 1, deploy)
+        conv2 = self.cconv_factory_inverse_no_relu(name + "_branch2c", conv1, 3, 4 * num_filter, 1, 0, deploy)
+        conv1_2 = self.cconv_factory_inverse_no_relu(name + "_branch1", bottom, 1, 4 * num_filter, stride, 0, deploy)
+        self.net[name] = L.Eltwise(conv2, conv1_2, operation=P.Eltwise.SUM)
+        self.net[name + "_relu"] = L.ReLU(self.net[name], name = name + "_relu" , in_place=True)
+        return self.net[name + "_relu"]
+
+    def resnet_rcnn(self):
+        channals = self.channals
+        data, im_info, gt_boxes = self.data_layer()
+        conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3)
+        pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
+        k=0
+        index = 1
+        out = pool1
+        for i in self.stages[:-1]:
+            index += 1
+            for j in range(i):
+                if j==0:
+                    if index == 2:
+                        stride = 1
+                    else:
+                        stride = 2  
+                    if self.module == "normal":
+                        out = self.residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride)
+                    else:
+                        out = self.residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride)
+                else:
+                    if self.module == "normal":
+                        out = self.residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals)
+                    else:
+                        out = self.residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals)
+            channals *= 2
+
+        if not self.deploy:
+            rpn_cls_loss, rpn_loss_bbox, rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
+            rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = \
+                self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
+        else:
+            rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
+            rois = self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
+
+        
+        feat_aligned = self.roi_align(out, rois)
+        out = feat_aligned
+
         index += 1
-        for j in range(i):
+        for j in range(self.stages[-1]):
             if j==0:
                 if index == 2:
                     stride = 1
                 else:
                     stride = 2
-                if module == "normal":
-                    out = residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride, deploy=deploy)
+                if self.module == "normal":
+                    out = self.residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride)
                 else:
-                    out = residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride, deploy=deploy)
+                    out = self.residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride)
             else:
-                if module == "normal":
-                    out = residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals, deploy=deploy)
+                if self.module == "normal":
+                    out = self.residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals)
                 else:
-                    out = residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals, deploy=deploy)
-        channals *= 2
-    return to_proto(out)
+                    out = self.residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals)
+        pool5 = self.ave_pool(7, 1, "pool5", out)
+        cls_score, bbox_pred = self.final_cls_bbox(pool5)
 
-def resnet_rcnn(stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, anchors = 9, feat_stride = 16, pooling = "align", module = "normal"):
-    if not deploy:
-        data, im_info, gt_boxes = data_layer(classes)
-    else:
-        data = L.DummyData(shape=[dict(dim=[1, 3, 224, 224])])
-        im_info = L.DummyData(shape=[dict(dim=[1, 3])])
-        gt_boxes = None
-    out = conv_factory("conv1", data, 3, channals, 2, 1)
-    out = pooling_layer(3, 2, 'MAX', 'pool1', out)
-    k=0
-    index = 1
-    for i in stages[:-1]:
-        index += 1
-        for j in range(i):
-            if j==0:
-                if index == 2:
-                    stride = 1
-                else:
-                    stride = 2  
-                if module == "normal":
-                    out = residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride, deploy=deploy)
-                else:
-                    out = residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride, deploy=deploy)
-            else:
-                if module == "normal":
-                    out = residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals, deploy=deploy)
-                else:
-                    out = residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals, deploy=deploy)
-        channals *= 2
-
-    if not deploy:
-        rpn_cls_loss, rpn_loss_bbox, rpn_cls_score_reshape, rpn_bbox_pred = rpn(out, gt_boxes, im_info, data, deploy=deploy)
-        rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = \
-            roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes, classes, deploy=deploy)
-    else:
-        rpn_cls_score_reshape, rpn_bbox_pred = rpn(out, gt_boxes, im_info, data, deploy=deploy)
-        rois = roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes, classes, deploy=deploy)
-
-    
-    feat_aligned = roi_align(out, rois, feat_stride, "align")
-    out = feat_aligned
-
-    index += 1
-    for j in range(stages[-1]):
-        if j==0:
-            if index == 2:
-                stride = 1
-            else:
-                stride = 2
-            if module == "normal":
-                out = residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride, deploy=deploy)
-            else:
-                out = residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride, deploy=deploy)
+        if not self.deploy:
+            self.net["loss_cls"] = L.SoftmaxWithLoss(cls_score, labels, propagate_down=[1,0], loss_weight= 1)
+            self.net["loss_bbox"] = L.SmoothL1Loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights,\
+                    propagate_down=[1,0], loss_weight= 1)
         else:
-            if module == "normal":
-                out = residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals, deploy=deploy)
-            else:
-                out = residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals, deploy=deploy)
-    pool5 = ave_pool(7, 1, "pool5", out)
-    cls_score, bbox_pred = final_cls_bbox(pool5, classes)
-
-    if not deploy:
-        loss_cls = L.SoftmaxWithLoss(cls_score, labels, name = "loss_cls",propagate_down=[1,0], loss_weight= 1)
-        loss_bbox = L.SmoothL1Loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights,\
-                name = "loss_bbox", propagate_down=[1,0], loss_weight= 1)
-        return to_proto(rpn_cls_loss, rpn_loss_bbox, loss_cls, loss_bbox)
-    else:
-        cls_prob =  L.Softmax(cls_score, name = "cls_prob")
-        return to_proto(cls_prob, bbox_pred)
+            self.net["cls_prob"] =  L.Softmax(cls_score)
+        return self.net.to_proto()
 
 def main():
+    resnet_test = ResNet(deploy=True)
+    resnet_train = ResNet(deploy=False)
     #for net in ('18', '34', '50', '101', '152'):
     with open('ResNet_50_deploy.prototxt', 'w') as f:
-        f.write(str(resnet_rcnn(deploy=True)))
+        f.write(str(resnet_test.resnet_rcnn()))
     with open('ResNet_50_train_val.prototxt', 'w') as f:
-        f.write(str(resnet_rcnn()))
+        f.write(str(resnet_train.resnet_rcnn()))
 
 if __name__ == '__main__':
     main()
