@@ -156,11 +156,19 @@ def solve(proto, roidb, pretrained_model, gpus, uid, rank, output_dir, max_iter)
     if solver.param.layer_wise_reduce:
         solver.net.after_backward(nccl)
     count = 0
+    timer = Timer()
     while count < max_iter:
+        timer.tic()
+        self.solver.step(1)
+        timer.toc()
         solver.step(cfg.TRAIN.SNAPSHOT_ITERS)
-        if rank == 0:
-            solverW.snapshot()
-        count = count + cfg.TRAIN.SNAPSHOT_ITERS
+        if count % (10 * solver.param.display) == 0:
+            if rank == 0:
+                print 'iter: {} speed: {:.3f}s / iter'.format(count, timer.average_time)
+        count += 1
+        if count.iter % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+            if rank == 0:
+                solverW.snapshot()
 
 def get_training_roidb(imdb):
     """Returns a roidb (Region of Interest database) for use in training."""
