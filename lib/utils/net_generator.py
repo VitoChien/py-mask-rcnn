@@ -7,7 +7,7 @@ from caffe import layers as L, params as P, to_proto
 
 
 class ResNet(): 
-    def __init__(self, stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, anchors = 9, feat_stride = 16, module = "normal", pooling = "align"):
+    def __init__(self, stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, anchors = 9, feat_stride = 16, pooled_size=[14, 14], module = "normal", pooling = "align"):
         self.stages = stages
         self.channals = channals
         self.deploy = deploy
@@ -17,18 +17,20 @@ class ResNet():
         self.module = module
         self.net = caffe.NetSpec()
         self.pooling = pooling
+        self.pooled_w = pooled_size[0] 
+        self.pooled_h = pooled_size[1] 
 
-    def roi_align(self, bottom, roi, pooled_w=7, pooled_h=7):
+    def roi_align(self, bottom, roi):
         if self.pooling == "align":
             self.net["ROIAlign"] = L.ROIAlign(bottom, roi, roi_align_param = {
-                    "pooled_w": pooled_w,
-                    "pooled_h": pooled_h,
+                    "pooled_w": self.pooled_w,
+                    "pooled_h": self.pooled_h,
                     "spatial_scale": 1/float(self.feat_stride)})
             return self.net["ROIAlign"]
         else:
             self.net["ROIPooling"] = L.ROIPooling(bottom, roi, roi_pooling_param = {
-                    "pooled_w": pooled_w,
-                    "pooled_h": pooled_h,
+                    "pooled_w": self.pooled_w,
+                    "pooled_h": self.pooled_h,
                     "spatial_scale": 1/float(self.feat_stride)})
             return self.net["ROIPooling"]
 
