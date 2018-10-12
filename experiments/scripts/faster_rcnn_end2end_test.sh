@@ -51,7 +51,6 @@ echo Logging output to "$LOG"
 
 time ./tools/test_net.py --gpu ${GPU_ID} \
   --def models/${PT_DIR}/${NET}/faster_rcnn_end2end/test.prototxt \
-  --net ./output/faster_rcnn_end2end/resnet50_faster_rcnn_${ITER}.caffemodel \
+  --net ./output/faster_rcnn_end2end/${TRAIN_IMDB}/resnet50_faster_rcnn_iter_${ITER}.caffemodel \
   --imdb ${TEST_IMDB} \
-  --cfg experiments/cfgs/faster_rcnn_end2end.yml \
-  ${EXTRA_ARGS}
+  --cfg experiments/cfgs/faster_rcnn_end2end.yml
