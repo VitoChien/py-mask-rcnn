@@ -40,8 +40,8 @@ class ResNet():
         if "res" in name:
             name_new = name.split("_")[1]
             self.net[name.replace("res_", "bn")] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
-            self.net[name.replace("res_", "scale")]  = L.Scale(self.net[name.replace("res", "bn")], in_place=True, scale_param=dict(bias_term=True))
-            self.net[name + "_relu"] = L.ReLU(self.net[name.replace("res", "scale")], in_place=True)
+            self.net[name.replace("res_", "scale")]  = L.Scale(self.net[name.replace("res_", "bn")], in_place=True, scale_param=dict(bias_term=True))
+            self.net[name + "_relu"] = L.ReLU(self.net[name.replace("res_", "scale")], in_place=True)
         else:
             self.net["bn" + name] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
             self.net["scale" + name] = L.Scale(self.net["bn" + name], in_place=True, scale_param=dict(bias_term=True))
