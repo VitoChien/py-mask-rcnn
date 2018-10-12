@@ -38,7 +38,6 @@ class ResNet():
         self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
                                     num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'))
         if "res" in name:
-            name_new = name.split("_")[1]
             self.net[name.replace("res", "bn")] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
             self.net[name.replace("res", "scale")]  = L.Scale(self.net[name.replace("res", "bn")], in_place=True, scale_param=dict(bias_term=True))
             self.net[name + "_relu"] = L.ReLU(self.net[name.replace("res", "scale")], in_place=True)
@@ -51,9 +50,14 @@ class ResNet():
     def conv_factory_inverse_no_relu(self, name, bottom, ks, nout, stride=1, pad=0, deploy=False, bias_term=False):
         self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
                                     num_output=nout, pad=pad, weight_filler=dict(type='msra'), bias_term= bias_term)
-        self.net["bn" + name] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
-        self.net["scale" + name] = L.Scale(self.net["bn" + name], in_place=True, scale_param=dict(bias_term=True))
-        return self.net["scale" + name]
+        if "res" in name:
+            self.net[name.replace("res", "bn")] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
+            self.net[name.replace("res", "scale")]  = L.Scale(self.net[name.replace("res", "bn")], in_place=True, scale_param=dict(bias_term=True))
+            return self.net[name.replace("res", "scale")]
+        else:
+            self.net["bn_" + name] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
+            self.net["scale_" + name] = L.Scale(self.net["bn_" + name], in_place=True, scale_param=dict(bias_term=True))
+            return self.net["scale_" + name]
 
     def rpn(self, bottom, gt_boxes, im_info, data):
         self.net["rpn_conv/3x3"] = L.Convolution(bottom, kernel_size=3, stride=1,
