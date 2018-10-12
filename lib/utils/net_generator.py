@@ -48,9 +48,9 @@ class ResNet():
             self.net[name + "_relu"] = L.ReLU(self.net["scale_" + name], in_place=True)
         return self.net[name + "_relu"]
 
-    def conv_factory_inverse_no_relu(self, name, bottom, ks, nout, stride=1, pad=0, deploy=False):
+    def conv_factory_inverse_no_relu(self, name, bottom, ks, nout, stride=1, pad=0, deploy=False, bias_term=False):
         self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
-                                    num_output=nout, pad=pad, weight_filler=dict(type='msra'))
+                                    num_output=nout, pad=pad, weight_filler=dict(type='msra'), bias_term= bias_term)
         self.net["bn_" + name] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
         self.net["scale_" + name] = L.Scale(self.net["bn_" + name], in_place=True, scale_param=dict(bias_term=True))
         return self.net["scale_" + name]
