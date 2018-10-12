@@ -34,9 +34,9 @@ class ResNet():
                     "spatial_scale": 1/float(self.feat_stride)})
             return self.net["ROIPooling"]
 
-    def conv_factory(self, name, bottom, ks, nout, stride=1, pad=0):
+    def conv_factory(self, name, bottom, ks, nout, stride=1, pad=0, bias_term=False):
         self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
-                                    num_output=nout, pad=pad, bias_term=False, weight_filler=dict(type='msra'))
+                                    num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'))
         if "res" in name:
             name_new = name.split("_")[1]
             self.net[name.replace("res", "bn")] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
@@ -197,7 +197,7 @@ class ResNet():
     def resnet_rcnn(self):
         channals = self.channals
         data, im_info, gt_boxes = self.data_layer()
-        conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3)
+        conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3, bias_term=True)
         pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
         k=0
         index = 1
