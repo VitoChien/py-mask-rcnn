@@ -253,7 +253,7 @@ class ResNet():
         cls_score, bbox_pred = self.final_cls_bbox(pool5)
 
         if not self.deploy:
-            self.net["loss_cls"] = L.SoftmaxWithLoss(cls_score, labels, loss_weight= 1)
+            self.net["loss_cls"] = L.SoftmaxWithLoss(cls_score, labels, loss_weight= 1, propagate_down=[1,0])
             self.net["loss_bbox"] = L.SmoothL1Loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights,\
                                 loss_weight= 1)
         else:
