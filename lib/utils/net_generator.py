@@ -365,10 +365,10 @@ def main():
     resnet_test = ResNet(deploy=True)
     resnet_train = ResNet(deploy=False)
     #for net in ('18', '34', '50', '101', '152'):
-    with open('ResNet_50_deploy.prototxt', 'w') as f:
-        f.write(str(resnet_test.resnet_rcnn()))
-    with open('ResNet_50_train_val.prototxt', 'w') as f:
-        f.write(str(resnet_train.resnet_rcnn()))
+    with open('test.prototxt', 'w') as f:
+        f.write(str(resnet_test.resnet_mask_rcnn()))
+    with open('train.prototxt', 'w') as f:
+        f.write(str(resnet_train.resnet_mask_rcnn()))
 
 if __name__ == '__main__':
     main()
