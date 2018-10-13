@@ -312,12 +312,14 @@ class ResNet():
             rpn_cls_loss, rpn_loss_bbox, rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
             rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = \
                 self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
-            ins_crop = L.Python(rois, ins,
+            self.net["ins_crop"] = L.Python(rois, ins,
                             name = 'ins_crop',
                             python_param=dict(
                                             module='crop_seg.layer',
-                                            layer='CropSegLayer'),
+                                            layer='CropSegLayer',
+                                            param_str='"pool_w": %s\n "pool_h":%s' %(self.pooled_w, self.pooled_w)),
                             ntop=1,)
+            ins_crop = self.net["ins_crop"]
         else:
             rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
             rois = self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
@@ -355,7 +357,7 @@ class ResNet():
             self.net["cls_prob"] =  L.Softmax(cls_score)
         
         #for mask prediction
-        mask_conv1 = self.conv_factory("mask_conv1", out, 3, 256, 1, 1, bias_term=True)
+        mask_conv1 = self.conv_factory("mask_conv1", feat_aligned, 3, 256, 1, 1, bias_term=True)
         mask_out = self.conv_factory("mask_out", mask_conv1, 1, 256, 1, 0, bias_term=True)
         if not self.deploy:
             self.net["loss_mask"] = L.SoftmaxWithLoss(mask_out, ins_crop, loss_weight= 1, propagate_down=[1,0])

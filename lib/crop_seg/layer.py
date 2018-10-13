@@ -23,7 +23,10 @@ class CropSegLayer(caffe.Layer):
     """
 
     def setup(self, bottom, top):
-        ins_croped_resized = np.zeros((1, pch, ph, pw))
+        layer_params = yaml.load(self.param_str)
+        self.pooled_w = layer_params['pooled_w']
+        self.pooled_h = layer_params['pooled_h']
+        ins_croped_resized = np.zeros((1, pch, self.pooled_w, self.pooled_h))
         top[0].reshape(*ins_croped_resized.shape)
         # top[1].reshape(1, 4)
 
@@ -70,7 +73,7 @@ class CropSegLayer(caffe.Layer):
             print 'seg_gt shape:', seg_gt.shape
 
         # seg_cropped_resized = np.zeros((len(all_rois), pch, ph, pw), dtype=np.float32)
-        ins_cropped_resized = np.zeros((len(all_rois), pch, ph, pw), dtype=np.float32)
+        ins_cropped_resized = np.zeros((len(all_rois), pch, self.pooled_w, self.pooled_h), dtype=np.float32)
         # pad_corr = all_rois[:, 1:].copy()
 
         for ix, roi in enumerate(all_rois):
@@ -234,7 +237,7 @@ def _patch_resize(patch_cropped, option):
     patch_cropped = patch_cropped.transpose((1, 2, 0))
     patch_cropped = patch_cropped.astype(np.float32, copy=False)
     if option == 'seg' or option == 'ins':
-        target_size = (ph, pw)
+        target_size = (self.pooled_w, self.pooled_h)
         # print 'patch_cropped.shape', patch_cropped.shape
         patch_resized = cv2.resize(patch_cropped, target_size, interpolation=cv2.INTER_NEAREST)
         patch_resized = patch_resized[:, :, np.newaxis]
