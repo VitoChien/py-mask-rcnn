@@ -361,7 +361,10 @@ class ResNet():
         mask_conv1 = self.conv_factory("mask_conv1", feat_aligned, 3, 256, 1, 1, bias_term=True)
         mask_out = self.conv_factory("mask_out", mask_conv1, 1, 256, 1, 0, bias_term=True)
         if not self.deploy:
-            self.net["loss_mask"] = L.SoftmaxWithLoss(mask_out, ins_crop, loss_weight= 1, propagate_down=[1,0])
+            self.net["loss_mask"] = L.SigmoidCrossEntropyLoss(mask_out, ins_crop, loss_weight= 1, propagate_down=[1,0],
+                                                    loss_param = dict(
+                                                    normalization = 1
+                                                    ))
         else:
             self.net["mask_prob"] =  L.Softmax(cls_score)
 
