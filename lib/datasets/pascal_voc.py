@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # --------------------------------------------------------
 # Fast R-CNN
 # Copyright (c) 2015 Microsoft
@@ -27,12 +28,6 @@ class pascal_voc(imdb):
         self._devkit_path = self._get_default_path() if devkit_path is None \
                             else devkit_path
         self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
-        #self._classes = ('__background__', # always index 0
-        #                 'aeroplane', 'bicycle', 'bird', 'boat',
-        #                 'bottle', 'bus', 'car', 'cat', 'chair',
-        #                 'cow', 'diningtable', 'dog', 'horse',
-        #                 'motorbike', 'person', 'pottedplant',
-        #                 'sheep', 'sofa', 'train', 'tvmonitor')
         self._classes = ('__background__', # always index 0
                          'person')
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
@@ -71,6 +66,44 @@ class pascal_voc(imdb):
         assert os.path.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
+
+    # get path of seg data added by huitr
+    # ------------------------------------------------------------
+    def seg_path_at(self, i):
+        """
+        Return the absolute path to seg image i in the seg image sequence.
+        """
+        return self.seg_path_from_index(self._image_index[i])
+
+    def seg_path_from_index(self, index):
+        """
+        Construct an image path from the image's "index" identifier.
+        """
+        seg_path = os.path.join(self._data_path, 'SegmentationPart',
+                                  index + '.png')
+        assert os.path.exists(seg_path), \
+                'Path does not exist: {}'.format(seg_path)
+        return seg_path
+    # ------------------------------------------------------------
+
+    # get path of ins data added by huitr
+    # ------------------------------------------------------------
+    def ins_path_at(self, i):
+        """
+        Return the absolute path to seg image i in the seg image sequence.
+        """
+        return self.ins_path_from_index(self._image_index[i])
+
+    def ins_path_from_index(self, index):
+        """
+        Construct an image path from the image's "index" identifier.
+        """
+        ins_path = os.path.join(self._data_path, 'SegmentationInstance',
+                                  index + '.png')
+        assert os.path.exists(ins_path), \
+                'Path does not exist: {}'.format(ins_path)
+        return ins_path
+    # ------------------------------------------------------------
 
     def _load_image_set_index(self):
         """
@@ -131,8 +164,9 @@ class pascal_voc(imdb):
 
         if int(self._year) == 2007 or self._image_set != 'test':
             gt_roidb = self.gt_roidb()
-            ss_roidb = self._load_selective_search_roidb(gt_roidb)
-            roidb = imdb.merge_roidbs(gt_roidb, ss_roidb)
+            # ss_roidb = self._load_selective_search_roidb(gt_roidb)
+            # roidb = imdb.merge_roidbs(gt_roidb, ss_roidb)
+            roidb = gt_roidb
         else:
             roidb = self._load_selective_search_roidb(None)
         with open(cache_file, 'wb') as fid:
@@ -187,6 +221,13 @@ class pascal_voc(imdb):
         filename = os.path.join(self._data_path, 'Annotations', index + '.xml')
         tree = ET.parse(filename)
         objs = tree.findall('object')
+        # filter other objects except for person in Pascal VOC 2012 xmls
+        person_objs = [
+            obj for obj in objs if obj.find('name').text.lower().strip() == 'person']
+        # if len(person_objs) == 0:
+        #     with open("/home/huitr/Desktop/nn.txt", 'a') as f:
+        #         f.write(str(index) + '\n')
+        objs = person_objs
         if not self.config['use_diff']:
             # Exclude the samples labeled as difficult
             non_diff_objs = [
@@ -207,8 +248,8 @@ class pascal_voc(imdb):
         for ix, obj in enumerate(objs):
             bbox = obj.find('bndbox')
             # Make pixel indexes 0-based
-            x1 = float(bbox.find('xmin').text) - 1
             y1 = float(bbox.find('ymin').text) - 1
+            x1 = float(bbox.find('xmin').text) - 1
             x2 = float(bbox.find('xmax').text) - 1
             y2 = float(bbox.find('ymax').text) - 1
             cls = self._class_to_ind[obj.find('name').text.lower().strip()]

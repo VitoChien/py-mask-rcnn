@@ -11,25 +11,33 @@ import numpy as np
 import numpy.random as npr
 import cv2
 from fast_rcnn.config import cfg
-from utils.blob import prep_im_for_blob, im_list_to_blob
+from utils.blob import prep_im_for_blob, im_list_to_blob, \
+    prep_seg_for_blob, seg_list_to_blob, prep_ins_for_blob, ins_list_to_blob
 
 def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
     num_images = len(roidb)
-    num_reg_class = 2 if cfg.TRAIN.AGNOSTIC else num_classes
     # Sample random scales to use for each image in this batch
     random_scale_inds = npr.randint(0, high=len(cfg.TRAIN.SCALES),
                                     size=num_images)
-    assert(cfg.TRAIN.BATCH_SIZE % num_images == 0) or (cfg.TRAIN.BATCH_SIZE == -1), \
+    assert(cfg.TRAIN.BATCH_SIZE % num_images == 0), \
         'num_images ({}) must divide BATCH_SIZE ({})'. \
         format(num_images, cfg.TRAIN.BATCH_SIZE)
-    rois_per_image = np.inf if cfg.TRAIN.BATCH_SIZE == -1 else cfg.TRAIN.BATCH_SIZE / num_images
+    rois_per_image = cfg.TRAIN.BATCH_SIZE / num_images
     fg_rois_per_image = np.round(cfg.TRAIN.FG_FRACTION * rois_per_image)
 
     # Get the input image blob, formatted for caffe
     im_blob, im_scales = _get_image_blob(roidb, random_scale_inds)
 
-    blobs = {'data': im_blob}
+    # Get the input seg image blob, formatted for caffe
+    # seg_blob, im_scales = _get_seg_blob(roidb, random_scale_inds)
+
+    # Get the input ins image blob, formatted for caffe
+    ins_blob, im_scales = _get_ins_blob(roidb, random_scale_inds)
+
+    # add seg_blob
+    # blobs = {'data': im_blob, 'seg': seg_blob, 'ins': ins_blob}
+    blobs = {'data': im_blob, 'ins': ins_blob}
 
     if cfg.TRAIN.HAS_RPN:
         assert len(im_scales) == 1, "Single batch only"
@@ -47,7 +55,7 @@ def get_minibatch(roidb, num_classes):
         # Now, build the region of interest and label blobs
         rois_blob = np.zeros((0, 5), dtype=np.float32)
         labels_blob = np.zeros((0), dtype=np.float32)
-        bbox_targets_blob = np.zeros((0, 4 * num_reg_class), dtype=np.float32)
+        bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
         bbox_inside_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
         # all_overlaps = []
         for im_i in xrange(num_images):
@@ -80,7 +88,6 @@ def get_minibatch(roidb, num_classes):
                 np.array(bbox_inside_blob > 0).astype(np.float32)
 
     return blobs
-
 
 def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
@@ -150,6 +157,54 @@ def _get_image_blob(roidb, scale_inds):
 
     return blob, im_scales
 
+# added for reading seg data
+def _get_seg_blob(roidb, scale_inds):
+    """Builds an input blob from the images in the roidb at the specified
+    scales.
+    """
+    num_images = len(roidb)
+    processed_ims = []
+    im_scales = []
+    for i in xrange(num_images):
+        seg = cv2.imread(roidb[i]['seg'])
+        seg = seg[:, :, :1]
+        if roidb[i]['flipped']:
+            seg = seg[:, ::-1, :]
+        target_size = cfg.TRAIN.SCALES[scale_inds[i]]
+        seg, im_scale = prep_seg_for_blob(seg, cfg.PIXEL_MEANS, target_size,
+                                        cfg.TRAIN.MAX_SIZE)
+        im_scales.append(im_scale)
+        processed_ims.append(seg)
+
+    # Create a blob to hold the input images
+    blob = seg_list_to_blob(processed_ims)
+
+    return blob, im_scales
+
+# added for reading ins data
+def _get_ins_blob(roidb, scale_inds):
+    """Builds an input blob from the images in the roidb at the specified
+    scales.
+    """
+    num_images = len(roidb)
+    processed_ims = []
+    im_scales = []
+    for i in xrange(num_images):
+        ins = cv2.imread(roidb[i]['ins'])
+        ins = ins[:, :, :1]
+        if roidb[i]['flipped']:
+            ins = ins[:, ::-1, :]
+        target_size = cfg.TRAIN.SCALES[scale_inds[i]]
+        ins, im_scale = prep_ins_for_blob(ins, cfg.PIXEL_MEANS, target_size,
+                                        cfg.TRAIN.MAX_SIZE)
+        im_scales.append(im_scale)
+        processed_ims.append(ins)
+
+    # Create a blob to hold the input images
+    blob = ins_list_to_blob(processed_ims)
+
+    return blob, im_scales
+
 def _project_im_rois(im_rois, im_scale_factor):
     """Project image RoIs into the rescaled training image."""
     rois = im_rois * im_scale_factor
@@ -168,28 +223,16 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
         bbox_inside_weights (ndarray): N x 4K blob of loss weights
     """
     clss = bbox_target_data[:, 0]
-    num_reg_class = 2 if cfg.TRAIN.AGNOSTIC else num_classes
-    bbox_targets = np.zeros((clss.size, 4 * num_reg_class), dtype=np.float32)
+    bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
     bbox_inside_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
     inds = np.where(clss > 0)[0]
-
-    if cfg.TRAIN.AGNOSTIC:
-        for ind in inds:
-            cls = clss[ind]
-            start = 4 * (1 if cls > 0 else 0)
-            end = start + 4
-            bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
-            bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
-    else:
-        for ind in inds:
-            cls = clss[ind]
-            start = 4 * cls
-            end = start + 4
-            bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
-            bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
-
+    for ind in inds:
+        cls = clss[ind]
+        start = 4 * cls
+        end = start + 4
+        bbox_targets[ind, start:end] = bbox_target_data[ind, 1:]
+        bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
     return bbox_targets, bbox_inside_weights
-
 
 def _vis_minibatch(im_blob, rois_blob, labels_blob, overlaps):
     """Visualize a mini-batch for debugging."""
