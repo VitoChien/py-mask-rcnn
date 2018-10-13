@@ -23,9 +23,9 @@ class CropSegLayer(caffe.Layer):
     """
 
     def setup(self, bottom, top):
-        layer_params = yaml.load(self.param_str)
-        self.pooled_w = layer_params['pooled_w']
-        self.pooled_h = layer_params['pooled_h']
+        # layer_params = yaml.load(self.param_str)
+        self.pooled_w = pw
+        self.pooled_h = ph
         ins_croped_resized = np.zeros((1, pch, self.pooled_w, self.pooled_h))
         top[0].reshape(*ins_croped_resized.shape)
         # top[1].reshape(1, 4)
