@@ -42,7 +42,6 @@ class SolverWrapper(object):
 
         self.solver = caffe.SGDSolver(solver_prototxt)
         
-        train_prototxt = self.solver.train_net
 
         # print("writing to proto file:{}".format(train_prototxt))
         # resnet_train = ResNet(deploy=False)
