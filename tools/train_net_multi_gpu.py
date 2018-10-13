@@ -33,7 +33,7 @@ def parse_args():
                         help='number of iterations to train',
                         default=40000, type=int)
     parser.add_argument('--weights', dest='pretrained_model',
-                        help='initialize with pretrained model weights'
+                        help='initialize with pretrained model weights',
                         default=None, type=str)
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
