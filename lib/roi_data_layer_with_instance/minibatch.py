@@ -181,6 +181,30 @@ def _get_seg_blob(roidb, scale_inds):
 
     return blob, im_scales
 
+# added for reading ins data
+def _get_ins_blob(roidb, scale_inds):
+    """Builds an input blob from the images in the roidb at the specified
+    scales.
+    """
+    num_images = len(roidb)
+    processed_ims = []
+    im_scales = []
+    for i in xrange(num_images):
+        ins = cv2.imread(roidb[i]['ins'])
+        ins = ins[:, :, :1]
+        if roidb[i]['flipped']:
+            ins = ins[:, ::-1, :]
+        target_size = cfg.TRAIN.SCALES[scale_inds[i]]
+        ins, im_scale = prep_ins_for_blob(ins, cfg.PIXEL_MEANS, target_size,
+                                        cfg.TRAIN.MAX_SIZE)
+        im_scales.append(im_scale)
+        processed_ims.append(ins)
+
+    # Create a blob to hold the input images
+    blob = ins_list_to_blob(processed_ims)
+
+    return blob, im_scales
+
 def _project_im_rois(im_rois, im_scale_factor):
     """Project image RoIs into the rescaled training image."""
     rois = im_rois * im_scale_factor

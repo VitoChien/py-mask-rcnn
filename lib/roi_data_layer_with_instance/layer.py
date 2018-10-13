@@ -145,6 +145,10 @@ class RoIDataLayer(caffe.Layer):
         # idx += 1
 
         # add ins data
+        top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1,
+                         max(cfg.TRAIN.SCALES), cfg.TRAIN.MAX_SIZE)
+        self._name_to_top_map['ins'] = idx
+        idx += 1
 
         print 'RoiDataLayer: name_to_top:', self._name_to_top_map
         assert len(top) == len(self._name_to_top_map)
