@@ -213,7 +213,11 @@ class ResNet():
 
     def resnet_rcnn(self):
         channals = self.channals
-        data, im_info, gt_boxes = self.data_layer_train()
+        if not self.deploy:
+            data, im_info, gt_boxes = self.data_layer_train()
+        else:
+            data, im_info = self.data_layer_test()
+            gt_boxes = None
         conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3, bias_term=True)
         pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
         k=0
