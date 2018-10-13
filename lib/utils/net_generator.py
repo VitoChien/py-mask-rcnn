@@ -317,7 +317,10 @@ class ResNet():
                             python_param=dict(
                                             module='crop_seg.layer',
                                             layer='CropSegLayer',
-                                            param_str='"pooled_w:" %s\n "pooled_h:"%s' %(self.pooled_w, self.pooled_h)),
+                                            param_str={
+                                            "pooled_w": self.pooled_w,
+                                            "pooled_h": self.pooled_h,
+                                            }),
                             ntop=1,)
             ins_crop = self.net["ins_crop"]
         else:
