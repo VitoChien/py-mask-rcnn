@@ -144,20 +144,34 @@ class ResNet():
                                 bias_filler=dict(type='constant', value=0))
         return self.net["cls_score"], self.net["bbox_pred"]
 
-    def data_layer(self):
+    def data_layer_train(self):
         if not self.deploy:
-            self.net["data"], self.net["im_info"], self.net["gt_boxes"] = L.Python(
+            self.net["data"], self.net["im_info"], self.net["gt_boxes"]= L.Python(
                                 name = 'input-data',
                                 python_param=dict(
                                                 module='roi_data_layer.layer',
                                                 layer='RoIDataLayer',
                                                 param_str='"num_classes": %s' %(self.classes)),
                                 ntop=3,)
-        else:
+        return self.net["data"], self.net["im_info"], self.net["gt_boxes"]
+
+    def data_layer_test(self):
+        if self.deploy:
             self.net["data"] = L.DummyData(shape=[dict(dim=[1, 3, 224, 224])])
             self.net["im_info"] = L.DummyData(shape=[dict(dim=[1, 3])])
             self.net["gt_boxes"] = L.DummyData(shape=[dict(dim=[1])])
         return self.net["data"], self.net["im_info"], self.net["gt_boxes"]
+
+    def data_layer_train_with_ins(self):
+        if not self.deploy:
+            self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["ins"] = L.Python(
+                                name = 'input-data',
+                                python_param=dict(
+                                                module='roi_data_layer.layer',
+                                                layer='RoIDataLayer',
+                                                param_str='"num_classes": %s' %(self.classes)),
+                                ntop=4,)
+        return self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["ins"]
 
     def pooling_layer(self, kernel_size, stride, pool_type, layer_name, bottom):
         self.net[layer_name] = L.Pooling(bottom, pool=eval("P.Pooling." + pool_type), kernel_size=kernel_size, stride=stride)
@@ -191,16 +205,16 @@ class ResNet():
         return self.net[name + "_relu"]
         
     def residual_block_basic(self, name, bottom, num_filter, stride=1, deploy=False):
-        conv1 = self.cconv_factory(name + "_branch2b",bottom, 3, num_filter, 1, 1, deploy)
-        conv2 = self.cconv_factory_inverse_no_relu(name + "_branch2c", conv1, 3, 4 * num_filter, 1, 0, deploy)
-        conv1_2 = self.cconv_factory_inverse_no_relu(name + "_branch1", bottom, 1, 4 * num_filter, stride, 0, deploy)
+        conv1 = self.conv_factory(name + "_branch2b",bottom, 3, num_filter, 1, 1, deploy)
+        conv2 = self.conv_factory_inverse_no_relu(name + "_branch2c", conv1, 3, 4 * num_filter, 1, 0, deploy)
+        conv1_2 = self.conv_factory_inverse_no_relu(name + "_branch1", bottom, 1, 4 * num_filter, stride, 0, deploy)
         self.net[name] = L.Eltwise(conv2, conv1_2, operation=P.Eltwise.SUM)
         self.net[name + "_relu"] = L.ReLU(self.net[name], name = name + "_relu" , in_place=True)
         return self.net[name + "_relu"]
 
     def resnet_rcnn(self):
         channals = self.channals
-        data, im_info, gt_boxes = self.data_layer()
+        data, im_info, gt_boxes = self.data_layer_train()
         conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3, bias_term=True)
         pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
         k=0
@@ -262,6 +276,89 @@ class ResNet():
                                 loss_weight= 1)
         else:
             self.net["cls_prob"] =  L.Softmax(cls_score)
+        return self.net.to_proto()
+
+    def resnet_mask_rcnn(self):
+        channals = self.channals
+        data, im_info, gt_boxes, ins = self.data_layer_train_with_ins()
+        conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3, bias_term=True)
+        pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
+        k=0
+        index = 1
+        out = pool1
+        for i in self.stages[:-1]:
+            index += 1
+            for j in range(i):
+                if j==0:
+                    if index == 2:
+                        stride = 1
+                    else:
+                        stride = 2  
+                    if self.module == "normal":
+                        out = self.residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride)
+                    else:
+                        out = self.residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride)
+                else:
+                    if self.module == "normal":
+                        out = self.residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals)
+                    else:
+                        out = self.residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals)
+            channals *= 2
+
+        if not self.deploy:
+            rpn_cls_loss, rpn_loss_bbox, rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
+            rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = \
+                self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
+            ins_crop = L.Python(rois, ins,
+                            name = 'ins_crop',
+                            python_param=dict(
+                                            module='crop_seg.layer',
+                                            layer='CropSegLayer'),
+                            ntop=1,)
+        else:
+            rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
+            rois = self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
+
+        
+        feat_aligned = self.roi_align(out, rois)
+        out = feat_aligned
+
+        index += 1
+        for j in range(self.stages[-1]):
+            if j==0:
+                if index == 2:
+                    stride = 1
+                else:
+                    stride = 2
+                if self.module == "normal":
+                    out = self.residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride)
+                else:
+                    out = self.residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride)
+            else:
+                if self.module == "normal":
+                    out = self.residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals)
+                else:
+                    out = self.residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals)
+        
+        # for bbox detection
+        pool5 = self.ave_pool(7, 1, "pool5", out)
+        cls_score, bbox_pred = self.final_cls_bbox(pool5)
+
+        if not self.deploy:
+            self.net["loss_cls"] = L.SoftmaxWithLoss(cls_score, labels, loss_weight= 1, propagate_down=[1,0])
+            self.net["loss_bbox"] = L.SmoothL1Loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights,\
+                                loss_weight= 1)
+        else:
+            self.net["cls_prob"] =  L.Softmax(cls_score)
+        
+        #for mask prediction
+        mask_conv1 = self.conv_factory("mask_conv1", out, 3, 256, 1, 1, bias_term=True)
+        mask_out = self.conv_factory("mask_out", mask_conv1, 1, 256, 1, 0, bias_term=True)
+        if not self.deploy:
+            self.net["loss_mask"] = L.SoftmaxWithLoss(mask_out, ins_crop, loss_weight= 1, propagate_down=[1,0])
+        else:
+            self.net["mask_prob"] =  L.Softmax(cls_score)
+
         return self.net.to_proto()
 
 def main():

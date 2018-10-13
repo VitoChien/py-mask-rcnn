@@ -12,8 +12,8 @@ import math
 
 DEBUG = False
 
-ph = 321
-pw = 321
+ph = 14
+pw = 14
 pch = 1
 
 class CropSegLayer(caffe.Layer):
@@ -23,16 +23,16 @@ class CropSegLayer(caffe.Layer):
     """
 
     def setup(self, bottom, top):
-        seg_croped_resized = np.zeros((1, pch, ph, pw))
-        top[0].reshape(*seg_croped_resized.shape)
-        top[1].reshape(1, 4)
+        ins_croped_resized = np.zeros((1, pch, ph, pw))
+        top[0].reshape(*ins_croped_resized.shape)
+        # top[1].reshape(1, 4)
 
     def forward(self, bottom, top):
         """Get blobs and copy them into this layer's top blob vector."""
         all_rois = bottom[0].data
-        seg_gt = bottom[1].data
+        # seg_gt = bottom[1].data
         # labels = bottom[2].data
-        ins_gt = bottom[2].data
+        ins_gt = bottom[1].data
 
         # all_rois = all_rois.reshape(all_rois.shape[0], 5)
         # labels = labels.reshape(labels.shape[0])
@@ -69,8 +69,9 @@ class CropSegLayer(caffe.Layer):
             print len(all_rois)
             print 'seg_gt shape:', seg_gt.shape
 
-        seg_cropped_resized = np.zeros((len(all_rois), pch, ph, pw), dtype=np.float32)
-        pad_corr = all_rois[:, 1:].copy()
+        # seg_cropped_resized = np.zeros((len(all_rois), pch, ph, pw), dtype=np.float32)
+        ins_cropped_resized = np.zeros((len(all_rois), pch, ph, pw), dtype=np.float32)
+        # pad_corr = all_rois[:, 1:].copy()
 
         for ix, roi in enumerate(all_rois):
             # print 'roi', roi
@@ -91,7 +92,7 @@ class CropSegLayer(caffe.Layer):
             # seg_cropped = depth_label_map[:, :, y_start:y_end, x_start:x_end].copy()
 
             # use instance labels to find the main person in part gt map
-            seg_cropped = seg_gt[:, :, y_start:y_end, x_start:x_end].copy()
+            # seg_cropped = seg_gt[:, :, y_start:y_end, x_start:x_end].copy()
             ins_cropped = ins_gt[:, :, y_start:y_end, x_start:x_end].copy()
 
             # print 'write image'
@@ -102,7 +103,7 @@ class CropSegLayer(caffe.Layer):
             # print 'ins_cropped.shape', ins_cropped.shape
 
             full_roi_num = ins_cropped.size
-            ins_cropped_ravel = list(ins_cropped.ravel())
+            ins_cropped_ravel = list(ins_cropped.copy().ravel())
             precision_dict = {k: ins_cropped_ravel.count(k) / (full_roi_num + 0.0) for k in set(ins_cropped_ravel)}
 
             recall_dict = {}
@@ -134,8 +135,11 @@ class CropSegLayer(caffe.Layer):
             # input()
 
             not_main_ins_inds = np.where(ins_cropped != max_label)
+            main_ins_inds = np.where(ins_cropped == max_label)
             # bg_inds = np.where(seg_cropped == 0)
-            seg_cropped[not_main_ins_inds] = 0 # penalize those are not main instances
+            # seg_cropped[not_main_ins_inds] = 0 # penalize those are not main instances
+            ins_cropped[not_main_ins_inds] = 0 # penalize those are not main instances
+            ins_cropped[main_ins_inds] = 1
             # seg_cropped[bg_inds] = 0
 
             # print 'seg_cropped.shape', seg_cropped.shape
@@ -145,34 +149,34 @@ class CropSegLayer(caffe.Layer):
 
             # pad_corr = [0, 0, seg_cropped.shape[3], seg_cropped.shape[2]]
 
-            has_face = True
-            face_inds = np.where(seg_cropped == 1)
-            for face_ind in face_inds:
-                if len(face_ind) == 0:
-                    has_face = False
-                    break
-            if has_face:
-                face_y_min = np.min(face_inds[2])
-                face_y_max = np.max(face_inds[2])
-                face_x_min = np.min(face_inds[3])
-                face_x_max = np.max(face_inds[3])
-                face_center = [face_x_min + (face_x_max - face_x_min) / 2, face_y_min + (face_y_max - face_y_min) / 2]
-                dist_top = face_center[1]
-                dist_left = face_center[0]
-                dist_right = seg_cropped.shape[3] - face_center[0]
-                dist_bottom = seg_cropped.shape[2] - face_center[1]
+            # has_face = True
+            # face_inds = np.where(seg_cropped == 1)
+            # for face_ind in face_inds:
+            #     if len(face_ind) == 0:
+            #         has_face = False
+            #         break
+            # if has_face:
+            #     face_y_min = np.min(face_inds[2])
+            #     face_y_max = np.max(face_inds[2])
+            #     face_x_min = np.min(face_inds[3])
+            #     face_x_max = np.max(face_inds[3])
+            #     face_center = [face_x_min + (face_x_max - face_x_min) / 2, face_y_min + (face_y_max - face_y_min) / 2]
+            #     dist_top = face_center[1]
+            #     dist_left = face_center[0]
+            #     dist_right = seg_cropped.shape[3] - face_center[0]
+            #     dist_bottom = seg_cropped.shape[2] - face_center[1]
 
-                if dist_left >= dist_right:
-                    pad_corr[ix][2] += dist_left - dist_right
-                else:
-                    pad_corr[ix][0] -= dist_right - dist_left
-                if dist_top >= dist_bottom:
-                    pad_corr[ix][3] += 3 * dist_top - dist_bottom
-                else:
-                    if dist_top / (dist_bottom + 0.0) >= 0.33:
-                        pad_corr[ix][3] += dist_top * 3 - dist_bottom
-                    else:
-                        pad_corr[ix][1] += dist_bottom * 0.33 - dist_top
+            #     if dist_left >= dist_right:
+            #         pad_corr[ix][2] += dist_left - dist_right
+            #     else:
+            #         pad_corr[ix][0] -= dist_right - dist_left
+            #     if dist_top >= dist_bottom:
+            #         pad_corr[ix][3] += 3 * dist_top - dist_bottom
+            #     else:
+            #         if dist_top / (dist_bottom + 0.0) >= 0.33:
+            #             pad_corr[ix][3] += dist_top * 3 - dist_bottom
+            #         else:
+            #             pad_corr[ix][1] += dist_bottom * 0.33 - dist_top
                 # pad_corr = np.array(pad_corr)
 
 
@@ -183,9 +187,9 @@ class CropSegLayer(caffe.Layer):
 
             # ============   end   ============= #
 
-            patch_resized = _patch_resize(seg_cropped[0], 'seg')
+            patch_resized = _patch_resize(ins_cropped[0], 'ins')
 
-            seg_cropped_resized[ix, :, :, :] = patch_resized
+            ins_cropped_resized[ix, :, :, :] = patch_resized
 
             # print 'precision_dict', precision_dict
             # print 'max_label', max_label
@@ -211,11 +215,11 @@ class CropSegLayer(caffe.Layer):
             # print precision_dict
             # input()
 
-        top[0].reshape(*seg_cropped_resized.shape)
+        top[0].reshape(*ins_cropped_resized.shape)
         top[0].data[...] = seg_cropped_resized
 
-        top[1].reshape(*pad_corr.shape)
-        top[1].data[...] = pad_corr
+        # top[1].reshape(*pad_corr.shape)
+        # top[1].data[...] = pad_corr
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -229,7 +233,7 @@ class CropSegLayer(caffe.Layer):
 def _patch_resize(patch_cropped, option):
     patch_cropped = patch_cropped.transpose((1, 2, 0))
     patch_cropped = patch_cropped.astype(np.float32, copy=False)
-    if option == 'seg':
+    if option == 'seg' or option == 'ins':
         target_size = (ph, pw)
         # print 'patch_cropped.shape', patch_cropped.shape
         patch_resized = cv2.resize(patch_cropped, target_size, interpolation=cv2.INTER_NEAREST)
