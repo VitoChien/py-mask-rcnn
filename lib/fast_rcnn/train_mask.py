@@ -44,10 +44,10 @@ class SolverWrapper(object):
         self.solver = caffe.SGDSolver(solver_prototxt)
         train_prototxt = self.solver.train_net
 
-        print("writing to proto file:{}".format(train_prototxt))
-        resnet_train = ResNet(deploy=False)
-        with open(train_prototxt, 'w') as f:
-            f.write(str(resnet_train.resnet_mask_rcnn()))
+        # print("writing to proto file:{}".format(train_prototxt))
+        # resnet_train = ResNet(deploy=False)
+        # with open(train_prototxt, 'w') as f:
+        #     f.write(str(resnet_train.resnet_mask_rcnn()))
             
         if pretrained_model is not None:
             print ('Loading pretrained model '
