@@ -107,6 +107,6 @@ if __name__ == '__main__':
     output_dir = get_output_dir(imdb)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
-    train_net_multi_gpu(args.solver, roidb, output_dir,
+    train_net_mask_multi_gpu(args.solver, roidb, output_dir,
             pretrained_model=args.pretrained_model,
-            max_iter=args.max_iters, gpus=gpus)
+            max_iters=args.max_iters)
