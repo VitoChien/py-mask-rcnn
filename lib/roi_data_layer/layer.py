@@ -20,7 +20,8 @@ from multiprocessing import Process, Queue
 class RoIDataLayer(caffe.Layer):
     """Fast R-CNN data layer used for training."""
 
-    def _shuffle_roidb_inds(self):
+    def _shuffle_roidb_inds(self, gpu_id):
+        self.gpu_id = gpu_id
         """Randomly permute the training roidb."""
         if cfg.TRAIN.ASPECT_GROUPING:
             widths = np.array([r['width'] for r in self._roidb])
@@ -33,6 +34,7 @@ class RoIDataLayer(caffe.Layer):
                 np.random.permutation(horz_inds),
                 np.random.permutation(vert_inds)))
             inds = np.reshape(inds, (-1, 2))
+            np.random.seed(gpu_id)
             row_perm = np.random.permutation(np.arange(inds.shape[0]))
             inds = np.reshape(inds[row_perm, :], (-1,))
             self._perm = inds
@@ -62,15 +64,15 @@ class RoIDataLayer(caffe.Layer):
             minibatch_db = [self._roidb[i] for i in db_inds]
             return get_minibatch(minibatch_db, self._num_classes)
 
-    def set_roidb(self, roidb):
+    def set_roidb(self, roidb, gpu_id=0):
         """Set the roidb to be used by this layer during training."""
         self._roidb = roidb
-        self._shuffle_roidb_inds()
+        self._shuffle_roidb_inds(gpu_id)
         if cfg.TRAIN.USE_PREFETCH:
             self._blob_queue = Queue(10)
             self._prefetch_process = BlobFetcher(self._blob_queue,
                                                  self._roidb,
-                                                 self._num_classes)
+                                                 self._num_classes, gpu_id)
             self._prefetch_process.start()
             # Terminate the child process when the parent exists
             def cleanup():
@@ -176,13 +178,14 @@ class RoIDataLayer(caffe.Layer):
 
 class BlobFetcher(Process):
     """Experimental class for prefetching blobs in a separate process."""
-    def __init__(self, queue, roidb, num_classes):
+    def __init__(self, queue, roidb, num_classes, gpu_id=0):
         super(BlobFetcher, self).__init__()
         self._queue = queue
         self._roidb = roidb
         self._num_classes = num_classes
         self._perm = None
         self._cur = 0
+        self.gpu_id = gpu_id
         self._shuffle_roidb_inds()
         # fix the random seed for reproducibility
         np.random.seed(cfg.RNG_SEED)
