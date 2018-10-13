@@ -41,6 +41,13 @@ class SolverWrapper(object):
             print 'done'
 
         self.solver = caffe.SGDSolver(solver_prototxt)
+        
+        train_prototxt = self.solver.train_net
+
+        resnet_train = ResNet(deploy=False)
+        with open(train_prototxt, 'w') as f:
+            f.write(str(resnet_train.resnet_mask_rcnn()))
+
         if pretrained_model is not None:
             print ('Loading pretrained model '
                    'weights from {:s}').format(pretrained_model)
@@ -213,10 +220,6 @@ def train_net_mask_multi_gpu(solver_prototxt, roidb, output_dir, pretrained_mode
     caffe.init_log()
     caffe.log('Using devices %s' % str(gpus))
     procs = []
-
-    resnet_train = ResNet(deploy=False)
-    with open(solver_prototxt, 'w') as f:
-        f.write(str(resnet_train.resnet_mask_rcnn()))
 
     for rank in range(len(gpus)):
         p = Process(target=solve,

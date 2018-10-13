@@ -42,6 +42,12 @@ class SolverWrapper(object):
             print 'done'
 
         self.solver = caffe.SGDSolver(solver_prototxt)
+        train_prototxt = self.solver.train_net
+
+        resnet_train = ResNet(deploy=False)
+        with open(train_prototxt, 'w') as f:
+            f.write(str(resnet_train.resnet_mask_rcnn()))
+            
         if pretrained_model is not None:
             print ('Loading pretrained model '
                    'weights from {:s}').format(pretrained_model)
@@ -197,10 +203,6 @@ def filter_roidb(roidb):
 def train_net_mask(solver_prototxt, roidb, output_dir,
               pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
-
-    resnet_train = ResNet(deploy=False)
-    with open(solver_prototxt, 'w') as f:
-        f.write(str(resnet_train.resnet_mask_rcnn()))
 
     roidb = filter_roidb(roidb)
     sw = SolverWrapper(solver_prototxt, roidb, output_dir,
