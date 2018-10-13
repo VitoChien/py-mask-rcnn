@@ -190,7 +190,7 @@ class CropSegLayer(caffe.Layer):
 
             # ============   end   ============= #
 
-            patch_resized = _patch_resize(self,ins_cropped[0], 'ins')
+            patch_resized = _patch_resize(ins_cropped[0], 'ins')
 
             ins_cropped_resized[ix, :, :, :] = patch_resized
 
