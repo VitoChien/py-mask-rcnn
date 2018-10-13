@@ -44,6 +44,7 @@ class SolverWrapper(object):
         
         train_prototxt = self.solver.train_net
 
+        print("writing to proto file:{}".format(train_prototxt))
         resnet_train = ResNet(deploy=False)
         with open(train_prototxt, 'w') as f:
             f.write(str(resnet_train.resnet_mask_rcnn()))
