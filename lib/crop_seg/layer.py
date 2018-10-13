@@ -190,7 +190,7 @@ class CropSegLayer(caffe.Layer):
 
             # ============   end   ============= #
 
-            patch_resized = _patch_resize(ins_cropped[0], 'ins')
+            patch_resized = self._patch_resize(ins_cropped[0], 'ins')
 
             ins_cropped_resized[ix, :, :, :] = patch_resized
 
@@ -219,7 +219,7 @@ class CropSegLayer(caffe.Layer):
             # input()
 
         top[0].reshape(*ins_cropped_resized.shape)
-        top[0].data[...] = seg_cropped_resized
+        top[0].data[...] = ins_cropped_resized
 
         # top[1].reshape(*pad_corr.shape)
         # top[1].data[...] = pad_corr
@@ -233,35 +233,35 @@ class CropSegLayer(caffe.Layer):
         pass
 
 
-def _patch_resize(patch_cropped, option):
-    patch_cropped = patch_cropped.transpose((1, 2, 0))
-    patch_cropped = patch_cropped.astype(np.float32, copy=False)
-    if option == 'seg' or option == 'ins':
-        target_size = (pw, ph)
-        # print 'patch_cropped.shape', patch_cropped.shape
-        patch_resized = cv2.resize(patch_cropped, target_size, interpolation=cv2.INTER_NEAREST)
-        patch_resized = patch_resized[:, :, np.newaxis]
-        # print 'patch_resized.shape', patch_resized.shape
-        patch_resized = patch_resized.transpose((2, 0, 1))
+    def _patch_resize(self, patch_cropped, option):
+        patch_cropped = patch_cropped.transpose((1, 2, 0))
+        patch_cropped = patch_cropped.astype(np.float32, copy=False)
+        if option == 'seg' or option == 'ins':
+            target_size = (self.pooled_w, self.pooled_h)
+            # print 'patch_cropped.shape', patch_cropped.shape
+            patch_resized = cv2.resize(patch_cropped, target_size, interpolation=cv2.INTER_NEAREST)
+            patch_resized = patch_resized[:, :, np.newaxis]
+            # print 'patch_resized.shape', patch_resized.shape
+            patch_resized = patch_resized.transpose((2, 0, 1))
 
-    if option == 'kps':
-        # target_size = (56,56)
-        target_size = (27, 27)
-        patch_resized = _kps_resize(patch_cropped, target_size)
-    return patch_resized
+        if option == 'kps':
+            # target_size = (56,56)
+            target_size = (27, 27)
+            patch_resized = _kps_resize(patch_cropped, target_size)
+        return patch_resized
 
 
-def _kps_resize(patch_croped,target_size):
-    patch_resized_k = np.zeros((target_size[0],target_size[1],17), dtype=float)
-    patch_shape = patch_croped.shape
-    patch_size_w = patch_shape[0]
-    patch_size_h = patch_shape[1]
-    patch_w_scale = float(target_size[0]) / float(patch_size_w)
-    patch_h_scale = float(target_size[1]) / float(patch_size_h)
-    position=np.where(patch_croped!=0)
-    for i in range(len(position[2])):
-        patch_resized_k[patch_w_scale*position[0][i],patch_h_scale*position[1][i],position[2][i]]=1
-    # print 'patch_resized_k:',np.where(patch_resized_k!=0)
-    # input()
-    # patch_resized_k=_mask_add(patch_resized_k)
-    return patch_resized_k
+    def _kps_resize(self, patch_croped,target_size):
+        patch_resized_k = np.zeros((target_size[0],target_size[1],17), dtype=float)
+        patch_shape = patch_croped.shape
+        patch_size_w = patch_shape[0]
+        patch_size_h = patch_shape[1]
+        patch_w_scale = float(target_size[0]) / float(patch_size_w)
+        patch_h_scale = float(target_size[1]) / float(patch_size_h)
+        position=np.where(patch_croped!=0)
+        for i in range(len(position[2])):
+            patch_resized_k[patch_w_scale*position[0][i],patch_h_scale*position[1][i],position[2][i]]=1
+        # print 'patch_resized_k:',np.where(patch_resized_k!=0)
+        # input()
+        # patch_resized_k=_mask_add(patch_resized_k)
+        return patch_resized_k
