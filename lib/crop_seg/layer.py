@@ -70,7 +70,7 @@ class CropSegLayer(caffe.Layer):
         if DEBUG:
             print "==============================\nfrom gt_crop\nnum of rois:"
             print len(all_rois)
-            print 'seg_gt shape:', seg_gt.shape
+            print 'ins_gt shape:', ins_gt.shape
 
         # seg_cropped_resized = np.zeros((len(all_rois), pch, ph, pw), dtype=np.float32)
         ins_cropped_resized = np.zeros((len(all_rois), pch, self.pooled_w, self.pooled_h), dtype=np.float32)
@@ -87,9 +87,9 @@ class CropSegLayer(caffe.Layer):
                 x_end += 1
             if y_start == y_end:
                 y_end += 1
-            if x_start == seg_gt.shape[3]:
+            if x_start == ins_gt.shape[3]:
                 x_start -= 1
-            if y_start == seg_gt.shape[2]:
+            if y_start == ins_gt.shape[2]:
                 y_start -= 1
 
             # seg_cropped = depth_label_map[:, :, y_start:y_end, x_start:x_end].copy()
@@ -200,13 +200,13 @@ class CropSegLayer(caffe.Layer):
             if DEBUG:
                 print 'roi:'
                 print roi
-                print 'seg_gt shape: ', seg_gt.shape
-                print 'seg_cropped.shape: ', seg_cropped.shape
-                print 'seg_cropped'
-                print seg_cropped
+                print 'inns_gt shape: ', inns_gt.shape
+                print 'ins_cropped.shape: ', ins_cropped.shape
+                print 'ins_cropped'
+                print ins_cropped
                 print 'w_:', roi[3]-roi[1]
                 print 'h_:', roi[4]-roi[2]
-                print 'seg_cropped_resized.shape', seg_cropped_resized.shape
+                print 'ins_cropped_resized.shape', ins_cropped_resized.shape
                 print 'patch_resized'
                 print patch_resized[0]
                 input()
