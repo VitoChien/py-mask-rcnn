@@ -182,7 +182,7 @@ class BlobFetcher(Process):
         self._perm = None
         self._cur = 0
         self.gpu_id = gpu_id
-        self._shuffle_roidb_inds()
+        self._shuffle_roidb_inds(self.gpu_id)
         # fix the random seed for reproducibility
         np.random.seed(cfg.RNG_SEED)
 
