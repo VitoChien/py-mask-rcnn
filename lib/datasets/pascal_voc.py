@@ -98,8 +98,8 @@ class pascal_voc(imdb):
         """
         Construct an image path from the image's "index" identifier.
         """
-        ins_path = os.path.join(self._data_path, 'SegmentationInstance',
-                                  index + '.png')
+        ins_path = os.path.join(self._data_path, 'instance',
+                                  index + '_label_id.png')
         assert os.path.exists(ins_path), \
                 'Path does not exist: {}'.format(ins_path)
         return ins_path
