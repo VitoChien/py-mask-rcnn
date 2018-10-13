@@ -207,7 +207,7 @@ def filter_roidb(roidb):
     return filtered_roidb
 
 
-def train_net_multi_gpu(solver_prototxt, roidb, output_dir, pretrained_model, max_iter, gpus):
+def train_net_mask_multi_gpu(solver_prototxt, roidb, output_dir, pretrained_model, max_iter, gpus):
     """Train a Fast R-CNN network."""
     uid = caffe.NCCL.new_uid()
     caffe.init_log()

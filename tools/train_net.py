@@ -11,6 +11,7 @@
 
 import _init_paths
 from fast_rcnn.train import get_training_roidb, train_net
+from fast_rcnn.train_mask import train_net_mask
 from fast_rcnn.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from datasets.factory import get_imdb
 import datasets.imdb
@@ -37,6 +38,8 @@ def parse_args():
     parser.add_argument('--weights', dest='pretrained_model',
                         help='initialize with pretrained model weights',
                         default=None, type=str)
+    parser.add_argument('--mask', dest='mask',
+                        help='train mask branch', type=bool, default=False)
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
                         default=None, type=str)
@@ -107,6 +110,11 @@ if __name__ == '__main__':
     output_dir = get_output_dir(imdb)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
-    train_net(args.solver, roidb, output_dir,
-              pretrained_model=args.pretrained_model,
-              max_iters=args.max_iters)
+    if args.mask:
+        train_net_mask(args.solver, roidb, output_dir,
+                pretrained_model=args.pretrained_model,
+                max_iters=args.max_iters)
+    else:
+        train_net(args.solver, roidb, output_dir,
+                pretrained_model=args.pretrained_model,
+                max_iters=args.max_iters)

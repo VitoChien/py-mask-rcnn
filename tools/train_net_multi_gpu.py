@@ -9,6 +9,7 @@
 
 import _init_paths
 from fast_rcnn.train_multi_gpu import get_training_roidb, train_net_multi_gpu
+from fast_rcnn.train_multi_gpu_mask import train_net_mask_multi_gpu
 from fast_rcnn.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from datasets.factory import get_imdb
 import datasets.imdb
@@ -33,6 +34,8 @@ def parse_args():
                         default=40000, type=int)
     parser.add_argument('--weights', dest='pretrained_model',
                         help='initialize with pretrained model weights',
+    parser.add_argument('--mask', dest='mask',
+                        help='train mask branch', type=bool, default=False)
                         default=None, type=str)
     parser.add_argument('--cfg', dest='cfg_file',
                         help='optional config file',
@@ -104,6 +107,11 @@ if __name__ == '__main__':
     output_dir = get_output_dir(imdb)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
-    train_net_multi_gpu(args.solver, roidb, output_dir,
-              pretrained_model=args.pretrained_model,
-              max_iter=args.max_iters, gpus=gpus)
+    if args.mask:
+        train_net_mask_multi_gpu(args.solver, roidb, output_dir,
+                pretrained_model=args.pretrained_model,
+                max_iters=args.max_iters)
+    else:
+        train_net_multi_gpu(args.solver, roidb, output_dir,
+                pretrained_model=args.pretrained_model,
+                max_iter=args.max_iters, gpus=gpus)
