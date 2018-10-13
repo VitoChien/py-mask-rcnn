@@ -159,8 +159,7 @@ class ResNet():
         if self.deploy:
             self.net["data"] = L.DummyData(shape=[dict(dim=[1, 3, 224, 224])])
             self.net["im_info"] = L.DummyData(shape=[dict(dim=[1, 3])])
-            self.net["gt_boxes"] = L.DummyData(shape=[dict(dim=[1])])
-        return self.net["data"], self.net["im_info"], self.net["gt_boxes"]
+        return self.net["data"], self.net["im_info"]
 
     def data_layer_train_with_ins(self):
         if not self.deploy:
@@ -280,7 +279,11 @@ class ResNet():
 
     def resnet_mask_rcnn(self):
         channals = self.channals
-        data, im_info, gt_boxes, ins = self.data_layer_train_with_ins()
+        if not self.deploy:
+            data, im_info, gt_boxes, ins = self.data_layer_train_with_ins()
+        else:
+            data, im_info = self.data_layer_test()
+            gt_boxes = None
         conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3, bias_term=True)
         pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
         k=0
