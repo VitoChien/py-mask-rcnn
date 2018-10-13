@@ -11,8 +11,7 @@ import numpy as np
 import numpy.random as npr
 import cv2
 from fast_rcnn.config import cfg
-from utils.blob import prep_im_for_blob, im_list_to_blob, \
-    prep_seg_for_blob, seg_list_to_blob, prep_ins_for_blob, ins_list_to_blob
+from utils.blob import prep_im_for_blob, im_list_to_blob
 
 def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
@@ -33,11 +32,10 @@ def get_minibatch(roidb, num_classes):
     # seg_blob, im_scales = _get_seg_blob(roidb, random_scale_inds)
 
     # Get the input ins image blob, formatted for caffe
-    ins_blob, im_scales = _get_ins_blob(roidb, random_scale_inds)
 
     # add seg_blob
     # blobs = {'data': im_blob, 'seg': seg_blob, 'ins': ins_blob}
-    blobs = {'data': im_blob, 'ins': ins_blob}
+    blobs = {'data': im_blob}
 
     if cfg.TRAIN.HAS_RPN:
         assert len(im_scales) == 1, "Single batch only"
