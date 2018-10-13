@@ -190,7 +190,7 @@ class CropSegLayer(caffe.Layer):
 
             # ============   end   ============= #
 
-            patch_resized = _patch_resize(ins_cropped[0], 'ins')
+            patch_resized = _patch_resize(self,ins_cropped[0], 'ins')
 
             ins_cropped_resized[ix, :, :, :] = patch_resized
 
@@ -237,7 +237,7 @@ def _patch_resize(patch_cropped, option):
     patch_cropped = patch_cropped.transpose((1, 2, 0))
     patch_cropped = patch_cropped.astype(np.float32, copy=False)
     if option == 'seg' or option == 'ins':
-        target_size = (self.pooled_w, self.pooled_h)
+        target_size = (pw, ph)
         # print 'patch_cropped.shape', patch_cropped.shape
         patch_resized = cv2.resize(patch_cropped, target_size, interpolation=cv2.INTER_NEAREST)
         patch_resized = patch_resized[:, :, np.newaxis]
