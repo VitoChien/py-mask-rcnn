@@ -45,7 +45,7 @@ class RoIDataLayer(caffe.Layer):
     def _get_next_minibatch_inds(self):
         """Return the roidb indices for the next minibatch."""
         if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
-            self._shuffle_roidb_inds()
+            self._shuffle_roidb_inds(self.gpu_id)
 
         db_inds = self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]
         self._cur += cfg.TRAIN.IMS_PER_BATCH
@@ -196,7 +196,7 @@ class BlobFetcher(Process):
         """Return the roidb indices for the next minibatch."""
         # TODO(rbg): remove duplicated code
         if self._cur + cfg.TRAIN.IMS_PER_BATCH >= len(self._roidb):
-            self._shuffle_roidb_inds()
+            self._shuffle_roidb_inds(self.gpu_id)
 
         db_inds = self._perm[self._cur:self._cur + cfg.TRAIN.IMS_PER_BATCH]
         self._cur += cfg.TRAIN.IMS_PER_BATCH
