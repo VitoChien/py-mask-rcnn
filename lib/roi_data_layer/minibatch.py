@@ -12,6 +12,8 @@ import numpy.random as npr
 import cv2
 from fast_rcnn.config import cfg
 from utils.blob import prep_im_for_blob, im_list_to_blob
+from utils.cython_bbox import bbox_overlaps
+import math
 
 def get_minibatch(roidb, num_classes):
     """Given a roidb, construct a minibatch sampled from it."""
@@ -54,23 +56,30 @@ def get_minibatch(roidb, num_classes):
         rois_blob = np.zeros((0, 5), dtype=np.float32)
         labels_blob = np.zeros((0), dtype=np.float32)
         bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
+        ins_blob = np.zeros((0, 14, 14), dtype=np.float32)
         bbox_inside_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
+        masks_blob = np.zeros(ins_blob.shape, dtype=np.float32)
         # all_overlaps = []
         for im_i in xrange(num_images):
-            labels, overlaps, im_rois, bbox_targets, bbox_inside_weights \
-                = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image,
+            labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, mask_rois, masks \
+                = _sample_rois(roidb[im_i], im_scales[im_i], fg_rois_per_image, rois_per_image,
                                num_classes)
 
             # Add to RoIs blob
-            rois = _project_im_rois(im_rois, im_scales[im_i])
+            rois = im_rois
+            # _project_im_rois(im_rois, im_scales[im_i])
             batch_ind = im_i * np.ones((rois.shape[0], 1))
             rois_blob_this_image = np.hstack((batch_ind, rois))
+
+            mask_rois_blob_this_image = np.hstack((batch_ind, mask_rois))
             rois_blob = np.vstack((rois_blob, rois_blob_this_image))
+            mask_rois_blob = np.vstack((rois_blob, mask_rois_blob_this_image))
 
             # Add to labels, bbox targets, and bbox loss blobs
             labels_blob = np.hstack((labels_blob, labels))
             bbox_targets_blob = np.vstack((bbox_targets_blob, bbox_targets))
             bbox_inside_blob = np.vstack((bbox_inside_blob, bbox_inside_weights))
+            masks_blob = np.vstack((masks_blob, masks))
             # all_overlaps = np.hstack((all_overlaps, overlaps))
 
         # For debug visualizations
@@ -78,6 +87,8 @@ def get_minibatch(roidb, num_classes):
 
         blobs['rois'] = rois_blob
         blobs['labels'] = labels_blob
+        blobs['mask_rois'] = mask_rois_blob
+        blobs['masks'] = masks_blob
 
         if cfg.TRAIN.BBOX_REG:
             blobs['bbox_targets'] = bbox_targets_blob
@@ -87,7 +98,7 @@ def get_minibatch(roidb, num_classes):
 
     return blobs
 
-def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
+def _sample_rois(roidb, im_scale, fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
@@ -126,12 +137,92 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     # Clamp labels for the background RoIs to 0
     labels[fg_rois_per_this_image:] = 0
     overlaps = overlaps[keep_inds]
-    rois = rois[keep_inds]
+    sampled_boxes = rois[keep_inds]
+    rois = sampled_boxes * im_scale
 
     bbox_targets, bbox_inside_weights = _get_bbox_regression_labels(
             roidb['bbox_targets'][keep_inds, :], num_classes)
 
-    return labels, overlaps, rois, bbox_targets, bbox_inside_weights
+    mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels)
+    return labels, overlaps, rois, bbox_targets, bbox_inside_weights, mask_rois, masks
+
+def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels):
+    M =14
+
+    polys_gt_inds = np.where(
+        (roidb['gt_classes'] > 0)
+    )[0]
+
+    boxes= [roidb['seg_areas'][i] for i in polys_gt_inds]
+    boxes_from_masks = np.zeros((len(boxes), 4), dtype=np.float32)
+    for i in range(len(boxes)):
+        boxes_from_masks[i, :] = boxes[i]
+
+    fg_inds = np.where(labels> 0)[0]
+    roi_has_mask = labels.copy()
+    roi_has_mask[roi_has_mask > 0] = 1
+    mask_file = cv2.imread(roidb["ins"])
+    mask_file = mask_file[:, :, :1]
+
+    if fg_inds.shape[0] > 0:
+
+        # Class labels for the foreground rois
+        mask_class_labels = labels[fg_inds]
+        masks = np.zeros((fg_inds.shape[0], M**2), dtype=np.int32)
+
+        # Find overlap between all foreground rois and the bounding boxes
+        # enclosing each segmentation
+        rois_fg = sampled_boxes[fg_inds]
+        overlaps_bbfg_bbpolys = bbox_overlaps(
+            rois_fg.astype(np.float32, copy=False),
+            boxes_from_masks.astype(np.float32, copy=False)
+        )
+        # Map from each fg rois to the index of the mask with highest overlap
+        # (measured by bbox overlap)
+        fg_bbox_inds = np.argmax(overlaps_bbfg_bbpolys, axis=1)
+
+        # add fg targets
+        for i in range(rois_fg.shape[0]):
+            fg_bbox_ind = fg_bbox_inds[i]
+            roi_fg = rois_fg[fg_bbox_ind]
+            # Rasterize the portion of the polygon mask within the given fg roi
+            # to an M x M binary image
+            mask = get_mask(mask_file, roi_fg, M)
+            mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
+            masks[i, :] = np.reshape(mask, M**2)
+    else:  # If there are no fg masks (it does happen)
+        # The network cannot handle empty blobs, so we must provide a mask
+        # We simply take the first bg roi, given it an all -1's mask (ignore
+        # label), and label it with class zero (bg).
+        bg_inds = np.where(labels == 0)[0]
+        # rois_fg is actually one background roi, but that's ok because ...
+        rois_fg = sampled_boxes[bg_inds[0]].reshape((1, -1))
+        # We give it an -1's blob (ignore label)
+        masks = -np.ones((1, M, M), dtype=np.int32)
+        # We label it with class = 0 (background)
+        mask_class_labels = np.zeros((1, ))
+        # Mark that the first roi has a mask
+        roi_has_mask[0] = 1
+    rois_fg *= im_scale
+    return rois_fg, roi_has_mask, masks
+
+def get_mask(mask_in, roi, size):
+    x_start = int(math.floor(roi[1]))
+    x_end = int(math.ceil(roi[3]))
+    y_start = int(math.floor(roi[2]))
+    y_end = int(math.ceil(roi[4]))
+
+    if x_start == x_end:
+        x_end += 1
+    if y_start == y_end:
+        y_end += 1
+    if x_start == mask_in.shape[3]:
+        x_start -= 1
+    if y_start == mask_in.shape[2]:
+        y_start -= 1
+    patch_cropped = mask_in[:, :, y_start:y_end, x_start:x_end].copy()
+    patch_resized = cv2.resize(patch_cropped, (size,size), interpolation=cv2.INTER_NEAREST)
+    return patch_resized
 
 def _get_image_blob(roidb, scale_inds):
     """Builds an input blob from the images in the roidb at the specified
