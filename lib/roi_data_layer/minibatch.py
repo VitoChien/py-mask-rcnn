@@ -162,7 +162,9 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels):
     roi_has_mask = labels.copy()
     roi_has_mask[roi_has_mask > 0] = 1
     mask_file = cv2.imread(roidb["ins"])
-    mask_file = mask_file[:, :, :1]
+    print("################")
+    print(mask_file.shape)
+    # mask_file = mask_file[:, :, :1]
 
     if fg_inds.shape[0] > 0:
 
@@ -174,8 +176,8 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels):
         # enclosing each segmentation
         rois_fg = sampled_boxes[fg_inds]
         overlaps_bbfg_bbpolys = bbox_overlaps(
-            rois_fg.astype(np.float32, copy=False),
-            boxes_from_masks.astype(np.float32, copy=False)
+            np.ascontiguousarray(rois_fg, dtype=np.float),
+            np.ascontiguousarray(boxes_from_masks, dtype=np.float)
         )
         # Map from each fg rois to the index of the mask with highest overlap
         # (measured by bbox overlap)
@@ -187,6 +189,7 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels):
             roi_fg = rois_fg[fg_bbox_ind]
             # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
+            print(roi_fg)
             mask = get_mask(mask_file, roi_fg, M)
             mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
             masks[i, :] = np.reshape(mask, M**2)
@@ -207,20 +210,22 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels):
     return rois_fg, roi_has_mask, masks
 
 def get_mask(mask_in, roi, size):
-    x_start = int(math.floor(roi[1]))
-    x_end = int(math.ceil(roi[3]))
+    x_start = int(math.floor(roi[0]))
+    x_end = int(math.ceil(roi[1]))
     y_start = int(math.floor(roi[2]))
-    y_end = int(math.ceil(roi[4]))
+    y_end = int(math.ceil(roi[3]))
 
     if x_start == x_end:
         x_end += 1
     if y_start == y_end:
         y_end += 1
-    if x_start == mask_in.shape[3]:
+    if x_start == mask_in.shape[1]:
         x_start -= 1
     if y_start == mask_in.shape[2]:
         y_start -= 1
-    patch_cropped = mask_in[:, :, y_start:y_end, x_start:x_end].copy()
+    patch_cropped = mask_in[x_start:x_end, y_start:y_end].copy()
+    print("###################")
+    print(patch_cropped.shape)
     patch_resized = cv2.resize(patch_cropped, (size,size), interpolation=cv2.INTER_NEAREST)
     return patch_resized
 
