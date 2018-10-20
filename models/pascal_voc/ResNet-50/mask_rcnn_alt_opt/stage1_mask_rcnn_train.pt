@@ -12,7 +12,7 @@ layer {
   python_param {
     module: "roi_data_layer.layer"
     layer: "RoIDataLayer"
-    param_str: "\"num_classes\": 2"
+    param_str: "{\"num_classes\": 2,\"output_h_w\": 14}"
   }
 }
 layer {
@@ -29,6 +29,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -80,6 +81,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -120,6 +122,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -160,6 +163,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -194,6 +198,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -244,6 +249,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -284,6 +290,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -324,6 +331,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -374,6 +382,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -414,6 +423,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -454,6 +464,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -504,6 +515,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -544,6 +556,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -584,6 +597,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -618,6 +632,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -668,6 +683,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -708,6 +724,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -748,6 +765,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -798,6 +816,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -838,6 +857,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -878,6 +898,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -928,6 +949,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -968,6 +990,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1008,6 +1031,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1058,6 +1082,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1098,6 +1123,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1138,6 +1164,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1172,6 +1199,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1222,6 +1250,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1262,6 +1291,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1302,6 +1332,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1352,6 +1383,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1392,6 +1424,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1432,6 +1465,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1482,6 +1516,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1522,6 +1557,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1562,6 +1598,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1612,6 +1649,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1652,6 +1690,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1692,6 +1731,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1742,6 +1782,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1782,6 +1823,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1822,6 +1864,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1882,6 +1925,7 @@ layer {
       type: "constant"
       value: 0
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1914,6 +1958,7 @@ layer {
       type: "constant"
       value: 0
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -1940,6 +1985,7 @@ layer {
       type: "constant"
       value: 0
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2004,6 +2050,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2044,6 +2091,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2084,6 +2132,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2118,6 +2167,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2168,6 +2218,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2208,6 +2259,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2248,6 +2300,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2298,6 +2351,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2338,6 +2392,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2378,6 +2433,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2505,6 +2561,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {
@@ -2545,6 +2602,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {

@@ -62,7 +62,7 @@ class RoIDataLayer(caffe.Layer):
         else:
             db_inds = self._get_next_minibatch_inds()
             minibatch_db = [self._roidb[i] for i in db_inds]
-            return get_minibatch(minibatch_db, self._num_classes)
+            return get_minibatch(minibatch_db, self._num_classes, self._output_h_w)
 
     def set_roidb(self, roidb, gpu_id=0):
         """Set the roidb to be used by this layer during training."""
@@ -89,6 +89,7 @@ class RoIDataLayer(caffe.Layer):
         layer_params = yaml.load(self.param_str)
 
         self._num_classes = layer_params['num_classes']
+        self._output_h_w = layer_params['output_h_w']
 
         self._name_to_top_map = {}
 
@@ -138,16 +139,16 @@ class RoIDataLayer(caffe.Layer):
                 self._name_to_top_map['bbox_outside_weights'] = idx
                 idx += 1
 
-                # add ins data
-                top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1,
-                                 5)
-                self._name_to_top_map['mask_rois'] = idx
-                idx += 1
 
-                top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1, 14, 14)
-                self._name_to_top_map['masks'] = idx
-                idx += 1
+            # add ins data
+            top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1,
+                             5)
+            self._name_to_top_map['mask_rois'] = idx
+            idx += 1
 
+            top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1, 14, 14)
+            self._name_to_top_map['masks'] = idx
+            idx += 1
         # add seg data
         # top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1,
         #                  max(cfg.TRAIN.SCALES), cfg.TRAIN.MAX_SIZE)
@@ -169,7 +170,7 @@ class RoIDataLayer(caffe.Layer):
             top[top_ind].reshape(*(blob.shape))
             # Copy data into net's input blobs
             # if blob_name == 'seg' or blob_name == 'ins':
-            if blob_name == 'ins':
+            if blob_name == 'masks':
                 top[top_ind].data[...] = blob.astype(np.uint8, copy=False)
             else:
                 top[top_ind].data[...] = blob.astype(np.float32, copy=False)
@@ -217,5 +218,5 @@ class BlobFetcher(Process):
         while True:
             db_inds = self._get_next_minibatch_inds()
             minibatch_db = [self._roidb[i] for i in db_inds]
-            blobs = get_minibatch(minibatch_db, self._num_classes)
+            blobs = get_minibatch(minibatch_db, self._num_classes, self._output_h_w)
             self._queue.put(blobs)

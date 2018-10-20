@@ -37,16 +37,16 @@ class ResNet():
     def conv_factory(self, name, bottom, ks, nout, stride=1, pad=0, bias_term=False, fixed = False):
         if not fixed:
             self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
-                                        num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'))
+                                        num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'), engine=2)
         else:
             if bias_term:
                 self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
                                         num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'),
-                                               param = [{'lr_mult':0, 'decay_mult':0},{'lr_mult':0, 'decay_mult':0}])
+                                               param = [{'lr_mult':0, 'decay_mult':0},{'lr_mult':0, 'decay_mult':0}], engine=2)
             else:
                 self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
                                         num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'),
-                                               param = [{'lr_mult':0, 'decay_mult':0}])
+                                               param = [{'lr_mult':0, 'decay_mult':0}],  engine=2)
         if "res" in name:
             self.net[name.replace("res", "bn")] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
             self.net[name.replace("res", "scale")]  = L.Scale(self.net[name.replace("res", "bn")], in_place=True, scale_param=dict(bias_term=True))
@@ -60,16 +60,16 @@ class ResNet():
     def conv_factory_inverse_no_relu(self, name, bottom, ks, nout, stride=1, pad=0, deploy=False, bias_term=False, fixed = False):
         if not fixed:
             self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
-                                        num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'))
+                                        num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'), engine=2)
         else:
             if bias_term:
                 self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
                                         num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'),
-                                               param = [{'lr_mult':0, 'decay_mult':0},{'lr_mult':0, 'decay_mult':0}])
+                                               param = [{'lr_mult':0, 'decay_mult':0},{'lr_mult':0, 'decay_mult':0}], engine=2)
             else:
                 self.net[name] = L.Convolution(bottom, kernel_size=ks, stride=stride,
                                         num_output=nout, pad=pad, bias_term=bias_term, weight_filler=dict(type='msra'),
-                                               param = [{'lr_mult':0, 'decay_mult':0}])
+                                               param = [{'lr_mult':0, 'decay_mult':0}], engine=2)
         if "res" in name:
             self.net[name.replace("res", "bn")] = L.BatchNorm(self.net[name], in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
             self.net[name.replace("res", "scale")]  = L.Scale(self.net[name.replace("res", "bn")], in_place=True, scale_param=dict(bias_term=True))
@@ -85,36 +85,36 @@ class ResNet():
                                         num_output=512, pad=1,
                                         param= [{'lr_mult':1},{'lr_mult':2}],
                                         weight_filler=dict(type='gaussian', std=0.01),
-                                        bias_filler=dict(type='constant', value=0))
+                                        bias_filler=dict(type='constant', value=0), engine=2)
         else:
             self.net["rpn_conv/3x3"] = L.Convolution(bottom, kernel_size=3, stride=1,
                                         num_output=512, pad=1,
                                         param= [{'lr_mult':0},{'lr_mult':0}],
                                         weight_filler=dict(type='gaussian', std=0.01),
-                                        bias_filler=dict(type='constant', value=0))
+                                        bias_filler=dict(type='constant', value=0), engine=2)
         self.net["rpn_relu/3x3"] = L.ReLU(self.net["rpn_conv/3x3"] , in_place=True)
         if not fixed:
             self.net["rpn_cls_score"] = L.Convolution(self.net["rpn_relu/3x3"], kernel_size=1, stride=1,
                                         num_output= 2 * self.anchors, pad=0,
                                         param= [{'lr_mult':1},{'lr_mult':2}],
                                         weight_filler=dict(type='gaussian', std=0.01),
-                                        bias_filler=dict(type='constant', value=0))
+                                        bias_filler=dict(type='constant', value=0), engine=2)
             self.net["rpn_bbox_pred"] = L.Convolution(self.net["rpn_relu/3x3"], kernel_size=1, stride=1,
                                         num_output= 4 * self.anchors, pad=0,
                                         param= [{'lr_mult':1},{'lr_mult':2}],
                                         weight_filler=dict(type='gaussian', std=0.01),
-                                        bias_filler=dict(type='constant', value=0))
+                                        bias_filler=dict(type='constant', value=0), engine=2)
         else:
             self.net["rpn_cls_score"] = L.Convolution(self.net["rpn_relu/3x3"], kernel_size=1, stride=1,
                                         num_output= 2 * self.anchors, pad=0,
                                         param= [{'lr_mult':0},{'lr_mult':0}],
                                         weight_filler=dict(type='gaussian', std=0.01),
-                                        bias_filler=dict(type='constant', value=0))
+                                        bias_filler=dict(type='constant', value=0), engine=2)
             self.net["rpn_bbox_pred"] = L.Convolution(self.net["rpn_relu/3x3"], kernel_size=1, stride=1,
                                         num_output= 4 * self.anchors, pad=0,
                                         param= [{'lr_mult':0},{'lr_mult':0}],
                                         weight_filler=dict(type='gaussian', std=0.01),
-                                        bias_filler=dict(type='constant', value=0))
+                                        bias_filler=dict(type='constant', value=0), engine=2)
         self.net["rpn_cls_score_reshape"] = L.Reshape(self.net["rpn_cls_score"],
                                     reshape_param= {"shape" : { "dim": [0, 2, -1, 0]}})
 
@@ -203,7 +203,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='"num_classes": %s' %(self.classes)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
                                     ntop=3,)
                 return self.net["data"], self.net["im_info"], self.net["gt_boxes"]
             else:
@@ -213,7 +213,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='"num_classes": %s' %(self.classes)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
                                     ntop=3,)
                 return self.net["data"], self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], \
                         self.net["bbox_outside_weights"]
@@ -233,7 +233,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='"num_classes": %s' %(self.classes)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
                                     ntop=5,)
                 return self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["mask_rois"], self.net["masks"]
             else:
@@ -243,7 +243,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='"num_classes": %s' %(self.classes)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
                                     ntop=8,)
                 return self.net["data"], self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], \
                         self.net["bbox_outside_weights"], self.net["mask_rois"], self.net["masks"]
@@ -624,13 +624,25 @@ class ResNet():
         return self.net.to_proto()
 
 def main():
-    resnet_test = ResNet(deploy=True)
-    resnet_train = ResNet(deploy=False)
+    resnet_rpn_test = ResNet(deploy=True)
+    resnet_rpn_train_1 = ResNet(deploy=False)
+    resnet_rpn_train_2 = ResNet(deploy=False)
+    resnet_mask_test = ResNet(deploy=True)
+    resnet_mask_train_1 = ResNet(deploy=False)
+    resnet_mask_train_2 = ResNet(deploy=False)
     #for net in ('18', '34', '50', '101', '152'):
-    with open('test.prototxt', 'w') as f:
-        f.write(str(resnet_test.resnet_mask_rcnn_rpn()))
-    with open('train.prototxt', 'w') as f:
-        f.write(str(resnet_train.resnet_mask_rcnn_rpn(stage=1)))
+    with open('mask_rcnn_test.pt', 'w') as f:
+        f.write(str(resnet_mask_test.resnet_mask_rcnn_mask_rcnn()))
+    with open('rpn_test.pt', 'w') as f:
+        f.write(str(resnet_rpn_test.resnet_mask_rcnn_rpn()))
+    with open('stage1_mask_rcnn_train.pt', 'w') as f:
+        f.write(str(resnet_mask_train_1.resnet_mask_rcnn_mask_rcnn(stage=1)))
+    with open('stage2_mask_rcnn_train.pt', 'w') as f:
+        f.write(str(resnet_mask_train_2.resnet_mask_rcnn_mask_rcnn(stage=2)))
+    with open('stage1_rpn_train.pt', 'w') as f:
+        f.write(str(resnet_rpn_train_1.resnet_mask_rcnn_rpn(stage=1)))
+    with open('stage2_rpn_train.pt', 'w') as f:
+        f.write(str(resnet_rpn_train_2.resnet_mask_rcnn_rpn(stage=2)))
 
 if __name__ == '__main__':
     main()
