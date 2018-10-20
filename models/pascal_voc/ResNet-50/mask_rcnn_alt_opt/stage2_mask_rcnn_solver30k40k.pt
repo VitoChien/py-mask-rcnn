@@ -1,10 +1,11 @@
 train_net: "models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_mask_rcnn_train.pt"
 
-base_lr: 0.001
-lr_policy: "step"
+base_lr: 0.01
+lr_policy: "multistep"
 gamma: 0.1
-stepsize: 30000
-display: 20
+stepvalue: 120000
+stepvalue: 160000
+display: 200
 average_loss: 100
 momentum: 0.9
 weight_decay: 0.0005
