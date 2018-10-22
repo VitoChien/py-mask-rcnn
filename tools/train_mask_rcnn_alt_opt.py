@@ -265,8 +265,8 @@ if __name__ == '__main__':
             solver=solvers[1],
             max_iters=max_iters[1],
             cfg=cfg,
-            #rpn_file=rpn_stage1_out['proposal_path'])
-            rpn_file="/home/qrh/py-mask-rcnn/output/mask_rcnn_alt_opt/voc_2007_trainval/ResNet50_rpn_stage1_iter_100_proposals.pkl")
+            rpn_file=rpn_stage1_out['proposal_path'])
+            #rpn_file="/home/qrh/py-mask-rcnn/output/mask_rcnn_alt_opt/voc_2007_trainval/ResNet50_rpn_stage1_iter_100_proposals.pkl")
     p = mp.Process(target=train_mask_rcnn, kwargs=mp_kwargs)
     p.start()
     mask_rcnn_stage1_out = mp_queue.get()
