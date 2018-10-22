@@ -107,4 +107,4 @@ if __name__ == '__main__':
 
     train_net_multi_gpu(args.solver, roidb, output_dir,
             pretrained_model=args.pretrained_model,
-            max_iter=args.max_iters, gpus=gpus)
+            max_iters=args.max_iters, gpus=gpus)

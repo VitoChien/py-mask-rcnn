@@ -2027,7 +2027,7 @@ layer {
 layer {
   name: "ROIAlignmask"
   type: "ROIAlign"
-  bottom: "ROIAligndet"
+  bottom: "res4f"
   bottom: "mask_rois"
   top: "ROIAlignmask"
   roi_align_param {

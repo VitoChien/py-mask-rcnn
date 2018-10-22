@@ -14,6 +14,7 @@ import os
 
 from caffe.proto import caffe_pb2
 import google.protobuf as pb2
+import multiprocessing
 from multiprocessing import Process
 
 class SolverWrapper(object):
@@ -139,7 +140,7 @@ class SolverWrapper(object):
     def getSolver(self):
         return self.solver
 
-def solve(proto, roidb, pretrained_model, gpus, uid, rank, output_dir, max_iter):
+def solve(proto, roidb, pretrained_model, gpus, uid, rank, output_dir, max_iter, queue):
     caffe.set_mode_gpu()
     caffe.set_device(gpus[rank])
     caffe.set_solver_count(len(gpus))
@@ -157,17 +158,27 @@ def solve(proto, roidb, pretrained_model, gpus, uid, rank, output_dir, max_iter)
         solver.net.after_backward(nccl)
     count = 0
     timer = Timer()
+    last_snapshot_iter = -1
     while count < max_iter:
         timer.tic()
         solver.step(1)
         timer.toc()
         count += 1
-        if count % (10 * solver.param.display) == 0:
+        if count % (solver.param.display) == 0:
             if rank == 0:
                 print 'iter: {}, speed: {:.3f}s / iter'.format(count, timer.average_time)
         if count % cfg.TRAIN.SNAPSHOT_ITERS == 0:
+            last_snapshot_iter = count
             if rank == 0:
-                solverW.snapshot()
+                model_paths = queue.get()['path_list']
+                model_paths.append(solverW.snapshot())
+                queue.put({'path_list': model_paths})
+
+    if last_snapshot_iter != max_iter:
+        if rank == 0:
+            model_paths = queue.get()['path_list']
+            model_paths.append(solverW.snapshot())
+            queue.put({'path_list': model_paths})
 
 def get_training_roidb(imdb):
     """Returns a roidb (Region of Interest database) for use in training."""
@@ -207,18 +218,22 @@ def filter_roidb(roidb):
     return filtered_roidb
 
 
-def train_net_multi_gpu(solver_prototxt, roidb, output_dir, pretrained_model, max_iter, gpus):
+def train_net_multi_gpu(solver_prototxt, roidb, output_dir, pretrained_model, max_iters, gpus):
     """Train a Fast R-CNN network."""
     uid = caffe.NCCL.new_uid()
     caffe.init_log()
     caffe.log('Using devices %s' % str(gpus))
     procs = []
 
+    queue = multiprocessing.Queue()
+    queue.put({'path_list': []})
     for rank in range(len(gpus)):
         p = Process(target=solve,
-                    args=(solver_prototxt, roidb, pretrained_model, gpus, uid, rank, output_dir, max_iter))
+                    args=(solver_prototxt, roidb, pretrained_model, gpus, uid, rank, output_dir, max_iters, queue))
         p.daemon = False
         p.start()
         procs.append(p)
     for p in procs:
         p.join()
+    path_list = queue.get()['path_list']
+    return path_list

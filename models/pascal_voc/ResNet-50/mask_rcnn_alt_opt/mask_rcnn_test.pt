@@ -2056,6 +2056,18 @@ layer {
   }
 }
 layer {
+  name: "ROIAlignmask"
+  type: "ROIAlign"
+  bottom: "res4f"
+  bottom: "rois"
+  top: "ROIAlignmask"
+  roi_align_param {
+    pooled_h: 14
+    pooled_w: 14
+    spatial_scale: 0.0625
+  }
+}
+layer {
   name: "res5a_branch2a"
   type: "Convolution"
   bottom: "ROIAligndet"
@@ -2555,7 +2567,7 @@ layer {
 layer {
   name: "mask_conv1"
   type: "Convolution"
-  bottom: "ROIAligndet"
+  bottom: "ROIAlignmask"
   top: "mask_conv1"
   convolution_param {
     num_output: 256
@@ -2637,6 +2649,6 @@ layer {
 layer {
   name: "mask_prob"
   type: "Softmax"
-  bottom: "cls_score"
+  bottom: "mask_out"
   top: "mask_prob"
 }

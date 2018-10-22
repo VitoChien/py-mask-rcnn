@@ -11,7 +11,8 @@
 """
 
 import _init_paths
-from fast_rcnn.train import get_training_roidb, train_net
+# from fast_rcnn.train import get_training_roidb, train_net
+from fast_rcnn.train_multi_gpu import get_training_roidb, train_net_multi_gpu
 from fast_rcnn.config import cfg, cfg_from_file, cfg_from_list, get_output_dir
 from datasets.factory import get_imdb
 from rpn.generate import imdb_proposals
@@ -28,9 +29,8 @@ def parse_args():
     Parse input arguments
     """
     parser = argparse.ArgumentParser(description='Train a MaskS R-CNN network')
-    parser.add_argument('--gpu', dest='gpu_id',
-                        help='GPU device id to use [0]',
-                        default=0, type=int)
+    parser.add_argument("--gpu_id", type=str, default='0',
+                        help="List of device ids.")
     parser.add_argument('--net_name', dest='net_name',
                         help='network name (e.g., "ZF")',
                         default=None, type=str)
@@ -74,8 +74,8 @@ def get_solvers(net_name):
                [net_name, n, 'stage2_mask_rcnn_solver30k40k.pt']]
     solvers = [os.path.join(cfg.MODELS_DIR, *s) for s in solvers]
     # Iterations for each training stage
-    max_iters = [90000, 180000, 90000, 180000]
-    # max_iters = [100, 100, 100, 100]
+    # max_iters = [90000, 180000, 90000, 180000]
+    max_iters = [100, 100, 100, 100]
     # Test prototxt for the RPN
     rpn_test_prototxt = os.path.join(
         cfg.MODELS_DIR, net_name, n, 'rpn_test.pt')
@@ -97,7 +97,7 @@ def _init_caffe(cfg):
     caffe.set_random_seed(cfg.RNG_SEED)
     # set up caffe
     caffe.set_mode_gpu()
-    caffe.set_device(cfg.GPU_ID)
+    caffe.set_device(cfg.GPU_ID[0])
 
 def train_rpn(queue=None, imdb_name=None, init_model=None, solver=None,
               max_iters=None, cfg=None):
@@ -114,16 +114,17 @@ def train_rpn(queue=None, imdb_name=None, init_model=None, solver=None,
     pprint.pprint(cfg)
 
     import caffe
-    _init_caffe(cfg)
+    # _init_caffe(cfg)
 
     roidb, imdb = get_roidb(imdb_name)
     print 'roidb len: {}'.format(len(roidb))
     output_dir = get_output_dir(imdb)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
-    model_paths = train_net(solver, roidb, output_dir,
+    model_paths = train_net_multi_gpu(solver, roidb, output_dir,
                             pretrained_model=init_model,
-                            max_iters=max_iters)
+                            max_iters=max_iters,
+                            gpus=cfg.GPU_ID)
     # Cleanup all but the final model
     for i in model_paths[:-1]:
         os.remove(i)
@@ -181,15 +182,16 @@ def train_mask_rcnn(queue=None, imdb_name=None, init_model=None, solver=None,
     pprint.pprint(cfg)
 
     import caffe
-    _init_caffe(cfg)
+    # _init_caffe(cfg)
 
     roidb, imdb = get_roidb(imdb_name, rpn_file=rpn_file)
     output_dir = get_output_dir(imdb)
     print 'Output will be saved to `{:s}`'.format(output_dir)
     # Train Mask R-CNN
-    model_paths = train_net(solver, roidb, output_dir,
+    model_paths = train_net_multi_gpu(solver, roidb, output_dir,
                             pretrained_model=init_model,
-                            max_iters=max_iters)
+                            max_iters=max_iters,
+                            gpus=cfg.GPU_ID)
     # Cleanup all but the final model
     for i in model_paths[:-1]:
         os.remove(i)
@@ -207,7 +209,12 @@ if __name__ == '__main__':
         cfg_from_file(args.cfg_file)
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
-    cfg.GPU_ID = args.gpu_id
+
+    gpu_id = args.gpu_id
+    gpu_list = gpu_id.split(',')
+    gpus = [int(i) for i in gpu_list]
+
+    cfg.GPU_ID = gpus
 
     # --------------------------------------------------------------------------
     # Pycaffe doesn't reliably free GPU memory when instantiated nets are
@@ -224,7 +231,7 @@ if __name__ == '__main__':
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 1 RPN, init from ImageNet model'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-
+    cfg.SNAPSHOT_ITERS = 5000
     cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
     mp_kwargs = dict(
             queue=mp_queue,
@@ -276,6 +283,7 @@ if __name__ == '__main__':
     print 'Stage 2 RPN, init from stage 1 Mask R-CNN model'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
+    cfg.SNAPSHOT_ITERS = 5000
     cfg.TRAIN.SNAPSHOT_INFIX = 'stage2'
     mp_kwargs = dict(
             queue=mp_queue,

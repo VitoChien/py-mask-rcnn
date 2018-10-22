@@ -219,11 +219,16 @@ class ResNet():
                         self.net["bbox_outside_weights"]
 
 
-    def data_layer_test(self):
+    def data_layer_test(self, with_roi=False):
         if self.deploy:
-            self.net["data"] = L.Input(shape=[dict(dim=[1, 3, 224, 224])])
-            self.net["im_info"] = L.Input(shape=[dict(dim=[1, 3])])
-        return self.net["data"], self.net["im_info"]
+            if not with_roi:
+                self.net["data"] = L.Input(shape=[dict(dim=[1, 3, 224, 224])])
+                self.net["im_info"] = L.Input(shape=[dict(dim=[1, 3])])
+                return self.net["data"], self.net["im_info"]
+            else:
+                self.net["data"] = L.Input(shape=[dict(dim=[1, 3, 224, 224])])
+                self.net["rois"] = L.Input(shape=[dict(dim=[1, 4])])
+                return self.net["data"], self.net["rois"]
 
     def data_layer_train_with_ins(self, with_rpn=False):
         if not self.deploy:
@@ -574,12 +579,16 @@ class ResNet():
             rois, scores = self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
 
         det_feat_aligned = self.roi_align("det", out, rois)
-        out = det_feat_aligned
-
         if not self.deploy:
             mask_feat_aligned = self.roi_align("mask", out, mask_rois)
         else:
-            mask_feat_aligned = det_feat_aligned
+            mask_feat_aligned = self.roi_align("mask", out, rois)
+        out = det_feat_aligned
+
+        # if not self.deploy:
+        #     mask_feat_aligned = self.roi_align("mask", out, mask_rois)
+        # else:
+        #     mask_feat_aligned = det_feat_aligned
 
         index += 1
         for j in range(self.stages[-1]):
@@ -619,7 +628,43 @@ class ResNet():
                                                           ignore_label = -1
                                                       ))
         else:
-            self.net["mask_prob"] = L.Softmax(cls_score)
+            self.net["mask_prob"] = L.Softmax(mask_out)
+
+        return self.net.to_proto()
+
+    def resnet_mask_rcnn_test(self):
+        channals = self.channals
+        data, rois = self.data_layer_test(with_roi=True)
+        pre_traned_fixed = True
+        conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3, bias_term=True, fixed=pre_traned_fixed)
+        pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
+        index = 1
+        out = pool1
+        for i in self.stages[:-1]:
+            index += 1
+            for j in range(i):
+                if j == 0:
+                    if index == 2:
+                        stride = 1
+                    else:
+                        stride = 2
+                    if self.module == "normal":
+                        out = self.residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride, fixed=pre_traned_fixed)
+                    else:
+                        out = self.residual_block_basic("res" + str(index) + ascii_lowercase[j], out, channals, stride, fixed=pre_traned_fixed)
+                else:
+                    if self.module == "normal":
+                        out = self.residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals, fixed=pre_traned_fixed)
+                    else:
+                        out = self.residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals, fixed=pre_traned_fixed)
+            channals *= 2
+
+        mask_feat_aligned = self.roi_align("mask", out, rois)
+
+        # for mask prediction
+        mask_conv1 = self.conv_factory("mask_conv1", mask_feat_aligned, 3, 256, 1, 1, bias_term=True)
+        mask_out = self.conv_factory("mask_out", mask_conv1, 1, self.classes, 1, 0, bias_term=True)
+        self.net["mask_prob"] = L.Softmax(mask_out)
 
         return self.net.to_proto()
 
@@ -630,19 +675,22 @@ def main():
     resnet_mask_test = ResNet(deploy=True)
     resnet_mask_train_1 = ResNet(deploy=False)
     resnet_mask_train_2 = ResNet(deploy=False)
+    resnet_mask_test_mask = ResNet(deploy=True)
     #for net in ('18', '34', '50', '101', '152'):
-    with open('mask_rcnn_test.pt', 'w') as f:
-        f.write(str(resnet_mask_test.resnet_mask_rcnn_mask_rcnn()))
-    with open('rpn_test.pt', 'w') as f:
-        f.write(str(resnet_rpn_test.resnet_mask_rcnn_rpn()))
-    with open('stage1_mask_rcnn_train.pt', 'w') as f:
-        f.write(str(resnet_mask_train_1.resnet_mask_rcnn_mask_rcnn(stage=1)))
-    with open('stage2_mask_rcnn_train.pt', 'w') as f:
-        f.write(str(resnet_mask_train_2.resnet_mask_rcnn_mask_rcnn(stage=2)))
     with open('stage1_rpn_train.pt', 'w') as f:
         f.write(str(resnet_rpn_train_1.resnet_mask_rcnn_rpn(stage=1)))
     with open('stage2_rpn_train.pt', 'w') as f:
         f.write(str(resnet_rpn_train_2.resnet_mask_rcnn_rpn(stage=2)))
+    with open('stage1_mask_rcnn_train.pt', 'w') as f:
+        f.write(str(resnet_mask_train_1.resnet_mask_rcnn_mask_rcnn(stage=1)))
+    with open('stage2_mask_rcnn_train.pt', 'w') as f:
+        f.write(str(resnet_mask_train_2.resnet_mask_rcnn_mask_rcnn(stage=2)))
+    with open('mask_rcnn_test.pt', 'w') as f:
+        f.write(str(resnet_mask_test.resnet_mask_rcnn_mask_rcnn()))
+    with open('mask_rcnn_mask_test.pt', 'w') as f:
+        f.write(str(resnet_mask_test_mask.resnet_mask_rcnn_test()))
+    with open('rpn_test.pt', 'w') as f:
+        f.write(str(resnet_rpn_test.resnet_mask_rcnn_rpn()))
 
 if __name__ == '__main__':
     main()

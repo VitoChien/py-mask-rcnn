@@ -183,6 +183,36 @@ def im_detect(net, im, boxes=None):
 
     return scores, pred_boxes
 
+def im_detect_mask(net, im, boxes=None):
+    """Detect object classes in an image given object proposals.
+
+    Arguments:
+        net (caffe.Net): Fast R-CNN network to use
+        im (ndarray): color image to test (in BGR order)
+        boxes (ndarray): R x 4 array of object proposals or None (for RPN)
+
+    Returns:
+        masks (ndarray): R x M x M array of predicted masks
+    """
+    blobs, im_scales = _get_blobs(im, boxes)
+
+    # When mapping from image ROIs to feature map ROIs, there's some aliasing
+    # (some distinct image ROIs get mapped to the same feature ROI).
+    # Here, we identify duplicate feature ROIs, so we only compute features
+    # on the unique subset.
+    # reshape network inputs
+    net.blobs['data'].reshape(*(blobs['data'].shape))
+    net.blobs['rois'].reshape(*(blobs['rois'].shape))
+
+    # do forward
+    forward_kwargs = {'data': blobs['data'].astype(np.float32, copy=False)}
+    forward_kwargs['rois'] = blobs['rois'].astype(np.float32, copy=False)
+    blobs_out = net.forward(**forward_kwargs)
+
+    masks = blobs_out['mask_prob']
+
+    return masks
+
 def vis_detections(im, class_name, dets, thresh=0.3):
     """Visual debugging of detections."""
     import matplotlib.pyplot as plt

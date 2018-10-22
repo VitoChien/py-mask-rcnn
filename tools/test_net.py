@@ -24,7 +24,7 @@ def parse_args():
     """
     parser = argparse.ArgumentParser(description='Test a Fast R-CNN network')
     parser.add_argument('--gpu', dest='gpu_id', help='GPU id to use',
-                        default=0, type=int)
+                        default="0", type=str)
     parser.add_argument('--def', dest='prototxt',
                         help='prototxt file defining the network',
                         default=None, type=str)
@@ -70,6 +70,10 @@ if __name__ == '__main__':
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
 
+    gpu_id = args.gpu_id
+    gpu_list = gpu_id.split(',')
+    gpus = [int(i) for i in gpu_list]
+    args.gpu_id = gpus[0]
     cfg.GPU_ID = args.gpu_id
 
     print('Using config:')
