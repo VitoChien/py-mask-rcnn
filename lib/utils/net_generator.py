@@ -7,7 +7,8 @@ from caffe import layers as L, params as P, to_proto
 
 
 class ResNet(): 
-    def __init__(self, stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, anchors = 9, feat_stride = 16, pooled_size=[14, 14], module = "normal", pooling = "align"):
+    def __init__(self, stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, anchors = 9, feat_stride = 16, \
+                 pooled_size=[14, 14], module = "normal", pooling = "align", scales=[4, 8, 16, 32]):
         self.stages = stages
         self.channals = channals
         self.deploy = deploy
@@ -18,7 +19,8 @@ class ResNet():
         self.net = caffe.NetSpec()
         self.pooling = pooling
         self.pooled_w = pooled_size[0] 
-        self.pooled_h = pooled_size[1] 
+        self.pooled_h = pooled_size[1]
+        self.scales =scales
 
     def roi_align(self, name, bottom, roi):
         if self.pooling == "align":
@@ -125,7 +127,7 @@ class ResNet():
                             python_param=dict(
                                             module='rpn.anchor_target_layer',
                                             layer='AnchorTargetLayer',
-                                            param_str='"feat_stride": %s' %(self.feat_stride)),
+                                            param_str='{"feat_stride": %s,"scales": !!python/tuple%s}' % (self.feat_stride, self.scales)),
                             ntop=4,)
             self.net["rpn_cls_loss"] = L.SoftmaxWithLoss(self.net["rpn_cls_score_reshape"], self.net["rpn_labels"], name = "rpn_loss_cls", propagate_down=[1,0],\
                             loss_weight = 1, loss_param = {"ignore_label": -1, "normalize": True})
@@ -148,7 +150,7 @@ class ResNet():
                             python_param=dict(
                                             module='rpn.proposal_layer',
                                             layer='ProposalLayer',
-                                            param_str='"feat_stride": %s' %(self.feat_stride)),
+                                            param_str='{"feat_stride": %s,"scales": !!python/tuple%s}' % (self.feat_stride, self.scales)),
                             ntop=1,)
             self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], self.net["bbox_outside_weights"] = \
                         L.Python(self.net["rpn_rois"], self.net["gt_boxes"],
@@ -165,7 +167,7 @@ class ResNet():
                             python_param=dict(
                                             module='rpn.proposal_layer',
                                             layer='ProposalLayer',
-                                            param_str='"feat_stride": %s' %(self.feat_stride)),
+                                            param_str='{"feat_stride": %s,"scales": !!python/tuple%s}' % (self.feat_stride, self.scales)),
                             ntop=2,)
             return self.net["rois"], self.net["scores"]
 
@@ -669,13 +671,14 @@ class ResNet():
         return self.net.to_proto()
 
 def main():
-    resnet_rpn_test = ResNet(deploy=True)
-    resnet_rpn_train_1 = ResNet(deploy=False)
-    resnet_rpn_train_2 = ResNet(deploy=False)
-    resnet_mask_test = ResNet(deploy=True)
-    resnet_mask_train_1 = ResNet(deploy=False)
-    resnet_mask_train_2 = ResNet(deploy=False)
-    resnet_mask_test_mask = ResNet(deploy=True)
+    scales = [32, 64, 128, 256]
+    resnet_rpn_test = ResNet(deploy=True, scales = scales)
+    resnet_rpn_train_1 = ResNet(deploy=False, scales = scales)
+    resnet_rpn_train_2 = ResNet(deploy=False, scales = scales)
+    resnet_mask_test = ResNet(deploy=True, scales = scales)
+    resnet_mask_train_1 = ResNet(deploy=False, scales = scales)
+    resnet_mask_train_2 = ResNet(deploy=False, scales = scales)
+    resnet_mask_test_mask = ResNet(deploy=True, scales = scales)
     #for net in ('18', '34', '50', '101', '152'):
     with open('stage1_rpn_train.pt', 'w') as f:
         f.write(str(resnet_rpn_train_1.resnet_mask_rcnn_rpn(stage=1)))
