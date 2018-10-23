@@ -231,7 +231,6 @@ if __name__ == '__main__':
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 1 RPN, init from ImageNet model'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    cfg.SNAPSHOT_ITERS = 5000
     cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
     mp_kwargs = dict(
             queue=mp_queue,

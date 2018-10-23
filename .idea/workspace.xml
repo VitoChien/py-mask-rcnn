@@ -2,6 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7ff3b93a-9a25-4ce5-ab2e-94e7b7a1dd9e" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/experiments/scripts/rpn_test.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tools/test_rpn.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/fast_rcnn/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/fast_rcnn/config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/fast_rcnn/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/fast_rcnn/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tools/train_mask_rcnn_alt_opt.py" beforeDir="false" afterPath="$PROJECT_DIR$/tools/train_mask_rcnn_alt_opt.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -61,23 +66,24 @@
           <entry key="project.open.time.3" value="1" />
           <entry key="project.open.time.5" value="1" />
           <entry key="project.open.time.7" value="3" />
-          <entry key="project.open.time.9" value="1" />
-          <entry key="project.opened" value="6" />
+          <entry key="project.open.time.9" value="2" />
+          <entry key="project.opened" value="7" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="pt" value="114" />
-          <entry key="py" value="52" />
-          <entry key="sh" value="1" />
+          <entry key="pt" value="115" />
+          <entry key="py" value="58" />
+          <entry key="sh" value="3" />
           <entry key="yml" value="1" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Chameleon" value="114" />
+          <entry key="Bash" value="2" />
+          <entry key="Chameleon" value="115" />
           <entry key="PLAIN_TEXT" value="1" />
-          <entry key="Python" value="52" />
+          <entry key="Python" value="58" />
           <entry key="YAML" value="1" />
         </counts>
       </usages-collector>
@@ -85,18 +91,18 @@
         <counts>
           <entry key="dummy" value="9" />
           <entry key="pt" value="114" />
-          <entry key="py" value="2992" />
-          <entry key="sh" value="34" />
-          <entry key="txt" value="238" />
+          <entry key="py" value="3129" />
+          <entry key="sh" value="64" />
+          <entry key="txt" value="263" />
           <entry key="yml" value="4" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Bash" value="34" />
+          <entry key="Bash" value="64" />
           <entry key="Chameleon" value="114" />
-          <entry key="PLAIN_TEXT" value="247" />
-          <entry key="Python" value="2992" />
+          <entry key="PLAIN_TEXT" value="272" />
+          <entry key="Python" value="3129" />
           <entry key="YAML" value="4" />
         </counts>
       </usages-collector>
@@ -109,8 +115,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tools/train_mask_rcnn_alt_opt.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="160">
-              <caret line="159" column="34" selection-start-line="159" selection-start-column="20" selection-end-line="159" selection-end-column="34" />
+            <state relative-caret-position="108">
+              <caret line="232" column="70" selection-start-line="232" selection-start-column="70" selection-end-line="232" selection-end-column="70" />
               <folding>
                 <element signature="e#336#354#0" expanded="true" />
               </folding>
@@ -118,11 +124,71 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/train_multi_gpu.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="46">
+              <caret line="161" column="27" selection-start-line="161" selection-start-column="27" selection-end-line="161" selection-end-column="27" />
+              <folding>
+                <element signature="e#211#223#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/rpn/generate.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="338">
               <caret line="113" column="38" selection-start-line="113" selection-start-column="38" selection-end-line="113" selection-end-column="38" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/test.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="277">
+              <caret line="425" column="33" lean-forward="true" selection-start-line="425" selection-start-column="33" selection-end-line="425" selection-end-column="33" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/tools/test_rpn.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="340">
+              <caret line="99" lean-forward="true" selection-start-line="99" selection-end-line="99" />
+              <folding>
+                <element signature="e#327#345#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/config.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="113">
+              <caret line="163" column="29" lean-forward="true" selection-start-line="163" selection-start-column="29" selection-end-line="163" selection-end-column="29" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_rcnn_alt_opt.sh">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="135">
+              <caret line="27" column="13" selection-start-line="27" selection-start-column="4" selection-end-line="27" selection-end-column="13" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/experiments/scripts/rpn_test.sh">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="179">
+              <caret line="46" column="12" selection-start-line="46" selection-start-column="12" selection-end-line="46" selection-end-column="12" />
             </state>
           </provider>
         </entry>
@@ -138,11 +204,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>convolution1</find>
-      <find>res4f_relu</find>
-      <find>IMS_PER_BATCH</find>
-      <find>roi_align</find>
-      <find>resnet_mask_rcnn_mask_rcnn</find>
       <find>def test_net</find>
       <find>test_net</find>
       <find>resnet_mask_rcnn_test</find>
@@ -151,11 +212,9 @@
       <find>data_layer_test</find>
       <find>ROIAlign</find>
       <find>train_mu</find>
-      <find>SNAPSHOT_ITERS</find>
       <find>max_iter</find>
       <find>gpus</find>
       <find>display</find>
-      <find>train_net_multi_gpu</find>
       <find>max_iters</find>
       <find>log</find>
       <find>rpn_generate</find>
@@ -168,6 +227,13 @@
       <find>queue</find>
       <find>snapshot</find>
       <find>imdb_proposals</find>
+      <find>TEST_IMDB</find>
+      <find>cls_scores</find>
+      <find>train_net_multi_gpu</find>
+      <find>SNAPSHOT_ITERS</find>
+      <find>all_boxes</find>
+      <find>5000</find>
+      <find>TRAIN.SNAPSHOT_ITERS</find>
     </findStrings>
     <replaceStrings>
       <replace>2</replace>
@@ -184,26 +250,28 @@
         <option value="$PROJECT_DIR$/experiments/cfgs/mask_rcnn_alt_opt.yml" />
         <option value="$PROJECT_DIR$/models/pascal_voc/VGG16/faster_rcnn_alt_opt/faster_rcnn_test.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/faster_rcnn_test.pt" />
-        <option value="$PROJECT_DIR$/experiments/scripts/mask_rcnn_alt_opt.sh" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_rpn_train.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/rpn_test.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_rpn_train.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_mask_rcnn_train.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_mask_rcnn_train.pt" />
         <option value="$PROJECT_DIR$/lib/roi_data_layer/minibatch.py" />
-        <option value="$PROJECT_DIR$/lib/fast_rcnn/config.py" />
         <option value="$PROJECT_DIR$/lib/roi_data_layer/layer.py" />
-        <option value="$PROJECT_DIR$/lib/fast_rcnn/test.py" />
         <option value="$PROJECT_DIR$/lib/utils/net_generator.py" />
         <option value="$PROJECT_DIR$/tools/train_net_multi_gpu.py" />
-        <option value="$PROJECT_DIR$/lib/fast_rcnn/train_multi_gpu.py" />
         <option value="$PROJECT_DIR$/lib/fast_rcnn/nms_wrapper.py" />
         <option value="$PROJECT_DIR$/tools/test_net.py" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_rpn_solver60k80k.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_rpn_solver60k80k.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_mask_rcnn_solver30k40k.pt" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_mask_rcnn_solver30k40k.pt" />
+        <option value="$PROJECT_DIR$/tools/test_rpn.py" />
+        <option value="$PROJECT_DIR$/experiments/scripts/mask_rcnn_alt_opt.sh" />
+        <option value="$PROJECT_DIR$/experiments/scripts/rpn_test.sh" />
+        <option value="$PROJECT_DIR$/lib/fast_rcnn/test.py" />
         <option value="$PROJECT_DIR$/tools/train_mask_rcnn_alt_opt.py" />
+        <option value="$PROJECT_DIR$/lib/fast_rcnn/train_multi_gpu.py" />
+        <option value="$PROJECT_DIR$/lib/fast_rcnn/config.py" />
       </list>
     </option>
   </component>
@@ -225,6 +293,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -232,11 +301,20 @@
               <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
               <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
             </path>
+            <path>
+              <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
+              <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
+              <item name="lib" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
+              <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
+              <item name="models" type="462c0819:PsiDirectoryNode" />
+            </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -252,10 +330,10 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
-      <recent name="C:\Users\Vito\Documents\GitHub\py-mask-rcnn\experiments\cfgs" />
       <recent name="C:\Users\Vito\Documents\GitHub\py-mask-rcnn\experiments\scripts" />
-      <recent name="C:\Users\Vito\Documents\GitHub\py-mask-rcnn\models\pascal_voc\ResNet-50\mask_rcnn_alt_opt" />
       <recent name="C:\Users\Vito\Documents\GitHub\py-mask-rcnn\tools" />
+      <recent name="C:\Users\Vito\Documents\GitHub\py-mask-rcnn\experiments\cfgs" />
+      <recent name="C:\Users\Vito\Documents\GitHub\py-mask-rcnn\models\pascal_voc\ResNet-50\mask_rcnn_alt_opt" />
     </key>
   </component>
   <component name="RunDashboard">
@@ -347,14 +425,21 @@
       <option name="project" value="LOCAL" />
       <updated>1540194747252</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="modified to support multi-gpu in alt_opt and change the max iters">
+      <created>1540291361562</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1540291361563</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="-7" y="-7" width="1295" height="695" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.29668552" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.30153596" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -370,7 +455,7 @@
       <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
       <window_info anchor="bottom" id="Terminal" order="11" weight="0.26512456" />
       <window_info anchor="bottom" id="Python Console" order="12" weight="0.3291815" />
-      <window_info anchor="bottom" id="File Transfer" order="13" weight="0.17437722" />
+      <window_info anchor="bottom" id="File Transfer" order="13" visible="true" weight="0.17437722" />
       <window_info anchor="right" x="0" y="0" width="273" height="495" id="Documentation" order="0" side_tool="true" weight="0.16168149" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="1" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="2" weight="0.25" />
@@ -392,7 +477,8 @@
     <MESSAGE value="fix bugs in roi data layer, mask rcnn alt opt is available now but remain test" />
     <MESSAGE value="commit debug code" />
     <MESSAGE value="modified to support multi-gpu in alt_opt" />
-    <option name="LAST_COMMIT_MESSAGE" value="modified to support multi-gpu in alt_opt" />
+    <MESSAGE value="modified to support multi-gpu in alt_opt and change the max iters" />
+    <option name="LAST_COMMIT_MESSAGE" value="modified to support multi-gpu in alt_opt and change the max iters" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/lib/utils/net_generator_str.py" />
@@ -476,13 +562,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_rcnn_alt_opt.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="45" column="12" selection-start-line="45" selection-start-column="12" selection-end-line="45" selection-end-column="12" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/experiments/scripts/faster_rcnn_alt_opt.sh">
       <provider selected="true" editor-type-id="text-editor">
         <state>
@@ -494,20 +573,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="211">
           <caret line="333" column="13" lean-forward="true" selection-start-line="333" selection-start-column="13" selection-end-line="334" selection-end-column="15" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/rpn_test.pt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="437">
-          <caret line="23" column="1" selection-start-line="23" selection-start-column="1" selection-end-line="23" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/datasets/pascal_voc.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4750">
-          <caret line="262" column="22" selection-start-line="262" selection-start-column="17" selection-end-line="262" selection-end-column="22" />
         </state>
       </provider>
     </entry>
@@ -548,9 +613,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="370">
           <caret line="689" column="31" lean-forward="true" selection-start-line="689" selection-start-column="31" selection-end-line="689" selection-end-column="31" />
-          <folding>
-            <element signature="e#0#66#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -668,37 +730,43 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/train_multi_gpu.py">
+    <entry file="file://$PROJECT_DIR$/lib/datasets/pascal_voc.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="403">
-          <caret line="238" column="11" selection-start-line="238" selection-start-column="11" selection-end-line="238" selection-end-column="11" />
-          <folding>
-            <element signature="e#211#223#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="165">
+          <caret line="363" column="8" selection-start-line="363" selection-start-column="8" selection-end-line="363" selection-end-column="8" />
         </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/rpn_test.pt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="167">
+          <caret line="2214" column="14" selection-start-line="2214" selection-start-column="8" selection-end-line="2214" selection-end-column="14" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_rcnn_alt_opt.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="27" column="13" selection-start-line="27" selection-start-column="4" selection-end-line="27" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/experiments/scripts/rpn_test.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="179">
+          <caret line="46" column="12" selection-start-line="46" selection-start-column="12" selection-end-line="46" selection-end-column="12" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/rpn/proposal_target_layer.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-3025" />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/test.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="443">
-          <caret line="152" column="59" lean-forward="true" selection-start-line="152" selection-start-column="59" selection-end-line="152" selection-end-column="59" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="179">
-          <caret line="70" column="24" selection-start-line="70" selection-start-column="10" selection-end-line="70" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tools/train_mask_rcnn_alt_opt.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="160">
-          <caret line="159" column="34" selection-start-line="159" selection-start-column="20" selection-end-line="159" selection-end-column="34" />
-          <folding>
-            <element signature="e#336#354#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="277">
+          <caret line="425" column="33" lean-forward="true" selection-start-line="425" selection-start-column="33" selection-end-line="425" selection-end-column="33" />
         </state>
       </provider>
     </entry>
@@ -706,6 +774,43 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="338">
           <caret line="113" column="38" selection-start-line="113" selection-start-column="38" selection-end-line="113" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/train_mask_rcnn_alt_opt.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="108">
+          <caret line="232" column="70" selection-start-line="232" selection-start-column="70" selection-end-line="232" selection-end-column="70" />
+          <folding>
+            <element signature="e#336#354#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/test_rpn.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="340">
+          <caret line="99" lean-forward="true" selection-start-line="99" selection-end-line="99" />
+          <folding>
+            <element signature="e#327#345#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/train_multi_gpu.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="46">
+          <caret line="161" column="27" selection-start-line="161" selection-start-column="27" selection-end-line="161" selection-end-column="27" />
+          <folding>
+            <element signature="e#211#223#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="113">
+          <caret line="163" column="29" lean-forward="true" selection-start-line="163" selection-start-column="29" selection-end-line="163" selection-end-column="29" />
         </state>
       </provider>
     </entry>
