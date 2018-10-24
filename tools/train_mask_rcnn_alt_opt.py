@@ -74,7 +74,7 @@ def get_solvers(net_name):
                [net_name, n, 'stage2_mask_rcnn_solver30k40k.pt']]
     solvers = [os.path.join(cfg.MODELS_DIR, *s) for s in solvers]
     # Iterations for each training stage
-    max_iters = [30000, 60000, 30000, 60000]
+    max_iters = [12500, 60000, 30000, 60000]
     # max_iters = [100, 100, 100, 100]
     # Test prototxt for the RPN
     rpn_test_prototxt = os.path.join(
@@ -126,8 +126,8 @@ def train_rpn(queue=None, imdb_name=None, init_model=None, solver=None,
                             max_iters=max_iters,
                             gpus=cfg.GPU_ID)
     # Cleanup all but the final model
-    for i in model_paths[:-1]:
-        os.remove(i)
+    # for i in model_paths[:-1]:
+    #     os.remove(i)
     rpn_model_path = model_paths[-1]
     # Send final model path through the multiprocessing queue
     queue.put({'model_path': rpn_model_path})
@@ -193,8 +193,8 @@ def train_mask_rcnn(queue=None, imdb_name=None, init_model=None, solver=None,
                             max_iters=max_iters,
                             gpus=cfg.GPU_ID)
     # Cleanup all but the final model
-    for i in model_paths[:-1]:
-        os.remove(i)
+    # for i in model_paths[:-1]:
+    #     os.remove(i)
     mask_rcnn_model_path = model_paths[-1]
     # Send Mask R-CNN model path over the multiprocessing queue
     queue.put({'model_path': mask_rcnn_model_path})
@@ -228,36 +228,40 @@ if __name__ == '__main__':
     # solves, iters, etc. for each training stage
     solvers, max_iters, rpn_test_prototxt = get_solvers(args.net_name)
 
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    print 'Stage 1 RPN, init from ImageNet model'
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
-    mp_kwargs = dict(
-            queue=mp_queue,
-            imdb_name=args.imdb_name,
-            init_model=args.pretrained_model,
-            solver=solvers[0],
-            max_iters=max_iters[0],
-            cfg=cfg)
-    p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
-    p.start()
-    rpn_stage1_out = mp_queue.get()
-    p.join()
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print 'Stage 1 RPN, init from ImageNet model'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # cfg.TRAIN.SNAPSHOT_INFIX = 'stage1'
+    # mp_kwargs = dict(
+    #         queue=mp_queue,
+    #         imdb_name=args.imdb_name,
+    #         init_model=args.pretrained_model,
+    #         solver=solvers[0],
+    #         max_iters=max_iters[0],
+    #         cfg=cfg)
+    # p = mp.Process(target=train_rpn, kwargs=mp_kwargs)
+    # p.start()
+    # rpn_stage1_out = mp_queue.get()
+    # p.join()
+    rpn_stage1_out = dict()
+    rpn_stage1_out["model_path"] = "./output/mask_rcnn_alt_opt/voc_2007_trainval/ResNet50_rpn_stage1_iter_15000.caffemodel"
 
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
-    print 'Stage 1 RPN, generate proposals'
-    print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    # print 'Stage 1 RPN, generate proposals'
+    # print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
+    #
+    # mp_kwargs = dict(
+    #         queue=mp_queue,
+    #         imdb_name=args.imdb_name,
+    #         rpn_model_path=str(rpn_stage1_out['model_path']),
+    #         cfg=cfg,
+    #         rpn_test_prototxt=rpn_test_prototxt)
+    # p = mp.Process(target=rpn_generate, kwargs=mp_kwargs)
+    # p.start()
+    # rpn_stage1_out['proposal_path'] = mp_queue.get()['proposal_path']
+    # p.join()
 
-    mp_kwargs = dict(
-            queue=mp_queue,
-            imdb_name=args.imdb_name,
-            rpn_model_path=str(rpn_stage1_out['model_path']),
-            cfg=cfg,
-            rpn_test_prototxt=rpn_test_prototxt)
-    p = mp.Process(target=rpn_generate, kwargs=mp_kwargs)
-    p.start()
-    rpn_stage1_out['proposal_path'] = mp_queue.get()['proposal_path']
-    p.join()
+    rpn_stage1_out['proposal_path'] = "./output/mask_rcnn_alt_opt/voc_2007_trainval/ResNet50_rpn_stage1_iter_15000_proposals.pkl"
 
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
     print 'Stage 1 Mask R-CNN using RPN proposals, init from ImageNet model'
@@ -282,7 +286,6 @@ if __name__ == '__main__':
     print 'Stage 2 RPN, init from stage 1 Mask R-CNN model'
     print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
 
-    cfg.SNAPSHOT_ITERS = 5000
     cfg.TRAIN.SNAPSHOT_INFIX = 'stage2'
     mp_kwargs = dict(
             queue=mp_queue,

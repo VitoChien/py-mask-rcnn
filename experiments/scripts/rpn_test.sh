@@ -13,8 +13,8 @@ set -e
 export PYTHONUNBUFFERED="True"
 
 GPU_ID=$1
-NET=$2
-NET_PATH=$3
+NET_PATH=$2
+NET=$3
 NET_lc=${NET,,}
 DATASET=$4
 

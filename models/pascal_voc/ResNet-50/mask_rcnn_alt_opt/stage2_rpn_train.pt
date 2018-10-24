@@ -1941,7 +1941,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 18
+    num_output: 24
     pad: 0
     kernel_size: 1
     stride: 1
@@ -1968,7 +1968,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 36
+    num_output: 48
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2011,7 +2011,7 @@ layer {
   python_param {
     module: "rpn.anchor_target_layer"
     layer: "AnchorTargetLayer"
-    param_str: "\"feat_stride\": 16"
+    param_str: "{\"feat_stride\": 16,\"scales\": [4, 8, 16, 32]}"
   }
 }
 layer {
@@ -2558,7 +2558,7 @@ layer {
 layer {
   name: "mask_conv1"
   type: "Convolution"
-  bottom: "dummy_roi_pool_conv5"
+  bottom: "res5c"
   top: "mask_conv1"
   convolution_param {
     num_output: 256

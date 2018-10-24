@@ -194,7 +194,7 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w):
             # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
             # print(roi_fg)
-            mask = get_mask(mask_file, roi_fg_now, M)
+            mask = get_mask(mask_file, roi_fg_now*im_scale, M)
             mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
             masks[i, :] = mask
             # masks[i, :] = np.reshape(mask, (M, M))

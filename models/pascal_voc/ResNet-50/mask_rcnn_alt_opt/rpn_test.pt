@@ -2129,7 +2129,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 18
+    num_output: 24
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2156,7 +2156,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 36
+    num_output: 48
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2199,7 +2199,7 @@ layer {
   reshape_param {
     shape {
       dim: 0
-      dim: 18
+      dim: 24
       dim: -1
       dim: 0
     }
@@ -2216,6 +2216,6 @@ layer {
   python_param {
     module: "rpn.proposal_layer"
     layer: "ProposalLayer"
-    param_str: "\"feat_stride\": 16"
+    param_str: "{\"feat_stride\": 16,\"scales\": [4, 8, 16, 32]}"
   }
 }

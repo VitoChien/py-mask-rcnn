@@ -1953,7 +1953,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 18
+    num_output: 24
     pad: 0
     kernel_size: 1
     stride: 1
@@ -1980,7 +1980,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 36
+    num_output: 48
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2023,7 +2023,7 @@ layer {
   reshape_param {
     shape {
       dim: 0
-      dim: 18
+      dim: 24
       dim: -1
       dim: 0
     }
@@ -2040,27 +2040,15 @@ layer {
   python_param {
     module: "rpn.proposal_layer"
     layer: "ProposalLayer"
-    param_str: "\"feat_stride\": 16"
+    param_str: "{\"feat_stride\": 16,\"scales\": [4, 8, 16, 32]}"
   }
 }
 layer {
-  name: "ROIAligndet"
+  name: "ROIAligndet_mask"
   type: "ROIAlign"
   bottom: "res4f"
   bottom: "rois"
-  top: "ROIAligndet"
-  roi_align_param {
-    pooled_h: 14
-    pooled_w: 14
-    spatial_scale: 0.0625
-  }
-}
-layer {
-  name: "ROIAlignmask"
-  type: "ROIAlign"
-  bottom: "res4f"
-  bottom: "rois"
-  top: "ROIAlignmask"
+  top: "ROIAligndet_mask"
   roi_align_param {
     pooled_h: 14
     pooled_w: 14
@@ -2070,7 +2058,7 @@ layer {
 layer {
   name: "res5a_branch2a"
   type: "Convolution"
-  bottom: "ROIAligndet"
+  bottom: "ROIAligndet_mask"
   top: "res5a_branch2a"
   convolution_param {
     num_output: 512
@@ -2187,7 +2175,7 @@ layer {
 layer {
   name: "res5a_branch1"
   type: "Convolution"
-  bottom: "ROIAligndet"
+  bottom: "ROIAligndet_mask"
   top: "res5a_branch1"
   convolution_param {
     num_output: 2048
@@ -2565,53 +2553,55 @@ layer {
   top: "cls_prob"
 }
 layer {
-  name: "mask_conv1"
-  type: "Convolution"
-  bottom: "ROIAlignmask"
-  top: "mask_conv1"
+  name: "mask_deconv1"
+  type: "Deconvolution"
+  bottom: "res5c"
+  top: "Deconvolution1"
   convolution_param {
     num_output: 256
-    bias_term: true
-    pad: 1
-    kernel_size: 3
-    stride: 1
+    bias_term: false
+    pad: 0
+    kernel_size: 2
+    stride: 2
     weight_filler {
       type: "msra"
     }
-    engine: CUDNN
+    bias_filler {
+      type: "constant"
+    }
   }
 }
 layer {
-  name: "bn_mask_conv1"
+  name: "bn_mask_deconv1"
   type: "BatchNorm"
-  bottom: "mask_conv1"
-  top: "mask_conv1"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
   batch_norm_param {
     use_global_stats: true
   }
 }
 layer {
-  name: "scale_mask_conv1"
+  name: "scale_mask_deconv1"
   type: "Scale"
-  bottom: "mask_conv1"
-  top: "mask_conv1"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
   scale_param {
     bias_term: true
   }
 }
 layer {
-  name: "mask_conv1_relu"
+  name: "mask_deconv1_relu"
   type: "ReLU"
-  bottom: "mask_conv1"
-  top: "mask_conv1"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
 }
 layer {
   name: "mask_out"
   type: "Convolution"
-  bottom: "mask_conv1"
+  bottom: "Deconvolution1"
   top: "mask_out"
   convolution_param {
-    num_output: 2
+    num_output: 1
     bias_term: true
     pad: 0
     kernel_size: 1
@@ -2648,7 +2638,7 @@ layer {
 }
 layer {
   name: "mask_prob"
-  type: "Softmax"
+  type: "Sigmoid"
   bottom: "mask_out"
   top: "mask_prob"
 }

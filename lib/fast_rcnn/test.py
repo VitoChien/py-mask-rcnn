@@ -97,11 +97,11 @@ def _project_im_rois(im_rois, scales):
 
     return rois, levels
 
-def _get_blobs(im, rois):
+def _get_blobs(im, rois, mask=False):
     """Convert an image and RoIs within that image into network inputs."""
     blobs = {'data' : None, 'rois' : None}
     blobs['data'], im_scale_factors = _get_image_blob(im)
-    if not cfg.TEST.HAS_RPN:
+    if not cfg.TEST.HAS_RPN and not mask:
         blobs['rois'] = _get_rois_blob(rois, im_scale_factors)
     return blobs, im_scale_factors
 
@@ -183,6 +183,47 @@ def im_detect(net, im, boxes=None):
 
     return scores, pred_boxes
 
+def im_seg(net, im, boxes=None):
+    """Detect object classes in an image given object proposals.
+
+    Arguments:
+        net (caffe.Net): Fast R-CNN network to use
+        im (ndarray): color image to test (in BGR order)
+        boxes (ndarray): R x 4 array of object proposals or None (for RPN)
+
+    Returns:
+        scores (ndarray): R x K array of object class scores (K includes
+            background as object category 0)
+        boxes (ndarray): R x (4*K) array of predicted bounding boxes
+    """
+    blobs, im_scales = _get_blobs(im, boxes, mask=True)
+
+    # When mapping from image ROIs to feature map ROIs, there's some aliasing
+    # (some distinct image ROIs get mapped to the same feature ROI).
+    # Here, we identify duplicate feature ROIs, so we only compute features
+    # on the unique subset.
+    if cfg.DEDUP_BOXES > 0 and not cfg.TEST.HAS_RPN:
+        v = np.array([1, 1e3, 1e6, 1e9, 1e12])
+        hashes = np.round(blobs['rois'] * cfg.DEDUP_BOXES).dot(v)
+        _, index, inv_index = np.unique(hashes, return_index=True,
+                                        return_inverse=True)
+        blobs['rois'] = blobs['rois'][index, :]
+        boxes = boxes[index, :]
+
+    # reshape network inputs
+    net.blobs['data'].reshape(*(blobs['data'].shape))
+    net.blobs['rois'].reshape(*(blobs['rois'].shape))
+
+    # do forward
+    forward_kwargs = {'data': blobs['data'].astype(np.float32, copy=False)}
+    forward_kwargs['rois'] = blobs['rois'].astype(np.float32, copy=False)
+    blobs_out = net.forward(**forward_kwargs)
+
+    seg_result = blobs_out['blobs_out']
+    seg_result = np.argmax(seg_result,axis=1)
+
+    return seg_result
+
 def im_detect_rpn(net, im):
     """Detect object classes in an image given object proposals.
 
@@ -235,6 +276,7 @@ def im_detect_mask(net, im, boxes=None):
     Returns:
         masks (ndarray): R x M x M array of predicted masks
     """
+    boxes = boxes.reshape((-1,4))
     blobs, im_scales = _get_blobs(im, boxes)
 
     # When mapping from image ROIs to feature map ROIs, there's some aliasing
@@ -295,7 +337,7 @@ def apply_nms(all_boxes, thresh):
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
     return nms_boxes
 
-def test_net(net, imdb, max_per_image=400, thresh=-np.inf, vis=False):
+def test_net(net, imdb, max_per_image=400, thresh=-np.inf, vis=False, mask=False):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
     # all detections are collected into:
@@ -355,9 +397,15 @@ def test_net(net, imdb, max_per_image=400, thresh=-np.inf, vis=False):
                 for j in xrange(1, imdb.num_classes):
                     keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
                     all_boxes[j][i] = all_boxes[j][i][keep, :]
-        _t['misc'].toc()
+        # _t['misc'].toc()
+        #
+        # _t['im_detect'].tic()
+        # seg = im_seg(net, im, all_boxes[:][i])
+        # _t['im_detect'].toc()
+        #
+        # _t['misc'].tic()
 
-        print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
+        print 'im_seg: {:d}/{:d} {:.3f}s {:.3f}s' \
               .format(i + 1, num_images, _t['im_detect'].average_time,
                       _t['misc'].average_time)
 

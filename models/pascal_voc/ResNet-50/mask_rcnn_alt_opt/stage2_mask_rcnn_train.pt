@@ -2122,7 +2122,7 @@ layer {
     lr_mult: 0
   }
   convolution_param {
-    num_output: 18
+    num_output: 24
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2149,7 +2149,7 @@ layer {
     lr_mult: 0
   }
   convolution_param {
-    num_output: 36
+    num_output: 48
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2189,23 +2189,21 @@ layer {
   bottom: "rpn_bbox_pred"
 }
 layer {
-  name: "ROIAligndet"
-  type: "ROIAlign"
-  bottom: "res4f"
+  name: "rois_cat"
+  type: "Concat"
   bottom: "rois"
-  top: "ROIAligndet"
-  roi_align_param {
-    pooled_h: 14
-    pooled_w: 14
-    spatial_scale: 0.0625
+  bottom: "mask_rois"
+  top: "rois_cat"
+  concat_param {
+    axis: 0
   }
 }
 layer {
-  name: "ROIAlignmask"
+  name: "ROIAligndet_mask"
   type: "ROIAlign"
   bottom: "res4f"
-  bottom: "mask_rois"
-  top: "ROIAlignmask"
+  bottom: "rois_cat"
+  top: "ROIAligndet_mask"
   roi_align_param {
     pooled_h: 14
     pooled_w: 14
@@ -2215,7 +2213,7 @@ layer {
 layer {
   name: "res5a_branch2a"
   type: "Convolution"
-  bottom: "ROIAligndet"
+  bottom: "ROIAligndet_mask"
   top: "res5a_branch2a"
   convolution_param {
     num_output: 512
@@ -2332,7 +2330,7 @@ layer {
 layer {
   name: "res5a_branch1"
   type: "Convolution"
-  bottom: "ROIAligndet"
+  bottom: "ROIAligndet_mask"
   top: "res5a_branch1"
   convolution_param {
     num_output: 2048
@@ -2647,9 +2645,20 @@ layer {
   top: "res5c"
 }
 layer {
+  name: "slice"
+  type: "Slice"
+  bottom: "res5c"
+  top: "det_feat"
+  top: "mask_feat"
+  slice_param {
+    slice_dim: 0
+    slice_point: 128
+  }
+}
+layer {
   name: "pool5"
   type: "Pooling"
-  bottom: "res5c"
+  bottom: "det_feat"
   top: "pool5"
   pooling_param {
     pool: AVE
@@ -2724,53 +2733,55 @@ layer {
   loss_weight: 1
 }
 layer {
-  name: "mask_conv1"
-  type: "Convolution"
-  bottom: "ROIAlignmask"
-  top: "mask_conv1"
+  name: "mask_deconv1"
+  type: "Deconvolution"
+  bottom: "mask_feat"
+  top: "Deconvolution1"
   convolution_param {
     num_output: 256
-    bias_term: true
-    pad: 1
-    kernel_size: 3
-    stride: 1
+    bias_term: false
+    pad: 0
+    kernel_size: 2
+    stride: 2
     weight_filler {
       type: "msra"
     }
-    engine: CUDNN
+    bias_filler {
+      type: "constant"
+    }
   }
 }
 layer {
-  name: "bn_mask_conv1"
+  name: "bn_mask_deconv1"
   type: "BatchNorm"
-  bottom: "mask_conv1"
-  top: "mask_conv1"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
   batch_norm_param {
     use_global_stats: false
   }
 }
 layer {
-  name: "scale_mask_conv1"
+  name: "scale_mask_deconv1"
   type: "Scale"
-  bottom: "mask_conv1"
-  top: "mask_conv1"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
   scale_param {
     bias_term: true
   }
 }
 layer {
-  name: "mask_conv1_relu"
+  name: "mask_deconv1_relu"
   type: "ReLU"
-  bottom: "mask_conv1"
-  top: "mask_conv1"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
 }
 layer {
   name: "mask_out"
   type: "Convolution"
-  bottom: "mask_conv1"
+  bottom: "Deconvolution1"
   top: "mask_out"
   convolution_param {
-    num_output: 2
+    num_output: 1
     bias_term: true
     pad: 0
     kernel_size: 1
@@ -2807,7 +2818,7 @@ layer {
 }
 layer {
   name: "loss_mask"
-  type: "SoftmaxWithLoss"
+  type: "SigmoidCrossEntropyLoss"
   bottom: "mask_out"
   bottom: "masks"
   top: "loss_mask"
