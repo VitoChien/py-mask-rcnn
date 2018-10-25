@@ -158,12 +158,12 @@ def _sample_rois(roidb, im_scale, fg_rois_per_image, rois_per_image, num_classes
     bbox_targets, bbox_inside_weights = _get_bbox_regression_labels(
             roidb['bbox_targets'][keep_inds, :], num_classes)
 
-    mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w)
-    mask_rois = mask_rois * im_scale
+    mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(sampled_boxes, roidb, labels, mask_h_w)
+    # mask_rois = mask_rois * im_scale
     #mask_rois = mask_rois[np.newaxis, :]
     return labels, overlaps, rois, bbox_targets, bbox_inside_weights, mask_rois, masks
 
-def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w):
+def _get_mask_rcnn_blobs(sampled_boxes, roidb, labels, mask_h_w):
     M = mask_h_w
 
     polys_gt_inds = np.where(
@@ -209,12 +209,22 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w):
             fg_bbox_ind = fg_bbox_inds[i]
             boxes_from_masks_now=boxes[fg_bbox_ind]
             roi_fg_now = rois_fg[i]
+            # im = cv2.imread(roidb['image'])
+            # cv2.rectangle(im, (boxes_from_masks_now[0], boxes_from_masks_now[1]), (boxes_from_masks_now[2], boxes_from_masks_now[3]), (0, 255, 0), 2)
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # cv2.putText(im, 'boxes_from_masks_now', (boxes_from_masks_now[0], boxes_from_masks_now[1]), font, 2, (255, 255, 255), 7)
+            # cv2.rectangle(im, (roi_fg_now[0], roi_fg_now[1]), (roi_fg_now[2], roi_fg_now[3]), (0, 122, 122), 2)
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # cv2.putText(im, 'roi_fg_now', (boxes_from_masks_now[0], boxes_from_masks_now[1]), font, 2, (122, 122, 122), 7)
+            # cv2.imwrite("img.jpg", im)
             # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
             # print(roi_fg)
-            mask = get_mask(mask_file, roi_fg_now*im_scale, boxes_from_masks_now, M)
+            mask = get_mask(mask_file, roi_fg_now, boxes_from_masks_now, M)
             mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
+            # cv2.imwrite("mask.png", mask*999)
             masks[i, :] = mask
+            # input()
             # masks[i, :] = np.reshape(mask, (M, M))
     else:  # If there are no fg masks (it does happen)
         # The network cannot handle empty blobs, so we must provide a mask
@@ -244,7 +254,6 @@ def get_mask(mask_in, roi, gt_rois, size):
     y_start = min(max(0,y_start), height)
     y_end = min(max(0,y_end), height)
 
-
     if x_start == x_end:
         x_end += 1
     if y_start == y_end:
@@ -263,10 +272,12 @@ def get_mask(mask_in, roi, gt_rois, size):
 
     gt_patch_cropped = mask_in[x_start_gt:x_end_gt, y_start_gt:y_end_gt].copy()
     # find the main obj by count the number of pixel
-    ids = np.unique(patch_cropped)
+    ids = np.unique(gt_patch_cropped)
     size_ = -1
     id_pick = -1
     for id in ids:
+        if id == 0:
+            continue
         mask = (gt_patch_cropped == id)
         arr_new = gt_patch_cropped[mask]
         if arr_new.size > size_:
