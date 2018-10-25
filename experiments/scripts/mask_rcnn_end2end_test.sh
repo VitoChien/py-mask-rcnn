@@ -20,7 +20,7 @@ ITER=$4
 
 array=( $@ )
 len=${#array[@]}
-EXTRA_ARGS=${array[@]:3:$len}
+EXTRA_ARGS=${array[@]:4:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
 case $DATASET in
@@ -49,8 +49,9 @@ LOG="experiments/logs/mask_rcnn_end2end_${NET}_${EXTRA_ARGS_SLUG}_test.txt.`date
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-time ./tools/test_net.py --gpu ${GPU_ID} \
+time python ./tools/test_net_mask.py --gpu ${GPU_ID} \
   --def models/${PT_DIR}/${NET}/mask_rcnn_end2end/test.prototxt \
+  --def_mask models/${PT_DIR}/${NET}/mask_rcnn_end2end/test_mask.prototxt \
   --net ./output/mask_rcnn_end2end/${TRAIN_IMDB}/resnet50_mask_rcnn_iter_${ITER}.caffemodel \
   --imdb ${TEST_IMDB} \
   --cfg experiments/cfgs/mask_rcnn_end2end.yml 

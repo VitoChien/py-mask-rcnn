@@ -101,7 +101,7 @@ def _get_blobs(im, rois, mask=False):
     """Convert an image and RoIs within that image into network inputs."""
     blobs = {'data' : None, 'rois' : None}
     blobs['data'], im_scale_factors = _get_image_blob(im)
-    if not cfg.TEST.HAS_RPN and not mask:
+    if not cfg.TEST.HAS_RPN or mask:
         blobs['rois'] = _get_rois_blob(rois, im_scale_factors)
     return blobs, im_scale_factors
 
@@ -183,7 +183,7 @@ def im_detect(net, im, boxes=None):
 
     return scores, pred_boxes
 
-def im_seg(net, im, boxes=None):
+def im_det(net, im, boxes=None):
     """Detect object classes in an image given object proposals.
 
     Arguments:
@@ -196,7 +196,7 @@ def im_seg(net, im, boxes=None):
             background as object category 0)
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
     """
-    blobs, im_scales = _get_blobs(im, boxes, mask=True)
+    blobs, im_scales = _get_blobs(im, boxes)
 
     # When mapping from image ROIs to feature map ROIs, there's some aliasing
     # (some distinct image ROIs get mapped to the same feature ROI).
@@ -210,17 +210,80 @@ def im_seg(net, im, boxes=None):
         blobs['rois'] = blobs['rois'][index, :]
         boxes = boxes[index, :]
 
+    if cfg.TEST.HAS_RPN:
+        im_blob = blobs['data']
+        blobs['im_info'] = np.array(
+            [[im_blob.shape[2], im_blob.shape[3], im_scales[0]]],
+            dtype=np.float32)
+
     # reshape network inputs
     net.blobs['data'].reshape(*(blobs['data'].shape))
-    net.blobs['rois'].reshape(*(blobs['rois'].shape))
+    if cfg.TEST.HAS_RPN:
+        net.blobs['im_info'].reshape(*(blobs['im_info'].shape))
+    else:
+        net.blobs['rois'].reshape(*(blobs['rois'].shape))
 
     # do forward
     forward_kwargs = {'data': blobs['data'].astype(np.float32, copy=False)}
-    forward_kwargs['rois'] = blobs['rois'].astype(np.float32, copy=False)
+    if cfg.TEST.HAS_RPN:
+        forward_kwargs['im_info'] = blobs['im_info'].astype(np.float32, copy=False)
+    else:
+        forward_kwargs['rois'] = blobs['rois'].astype(np.float32, copy=False)
     blobs_out = net.forward(**forward_kwargs)
 
-    seg_result = blobs_out['blobs_out']
-    seg_result = np.argmax(seg_result,axis=1)
+    if cfg.TEST.HAS_RPN:
+        assert len(im_scales) == 1, "Only single-image batch implemented"
+        rois = net.blobs['rois'].data.copy()
+        # unscale back to raw image space
+        boxes = rois[:, 1:5] / im_scales[0]
+
+    scores = blobs_out['cls_prob']
+
+    if cfg.TEST.BBOX_REG:
+        # Apply bounding-box regression deltas
+        box_deltas = blobs_out['bbox_pred']
+        pred_boxes = bbox_transform_inv(boxes, box_deltas)
+        pred_boxes = clip_boxes(pred_boxes, im.shape)
+    else:
+        # Simply repeat the boxes, once for each class
+        pred_boxes = np.tile(boxes, (1, scores.shape[1]))
+
+    if cfg.DEDUP_BOXES > 0 and not cfg.TEST.HAS_RPN:
+        # Map scores and predictions back to the original set of boxes
+        scores = scores[inv_index, :]
+        pred_boxes = pred_boxes[inv_index, :]
+
+    feat = net.blobs['res4f'].data.copy()
+    return scores, pred_boxes, feat
+
+def im_seg(net, im, feat, boxes=None):
+    """Detect object classes in an image given object proposals.
+
+    Arguments:
+        net (caffe.Net): Fast R-CNN network to use
+        im (ndarray): color image to test (in BGR order)
+        boxes (ndarray): R x 4 array of object proposals or None (for RPN)
+
+    Returns:
+        scores (ndarray): R x K array of object class scores (K includes
+            background as object category 0)
+        boxes (ndarray): R x (4*K) array of predicted bounding boxes
+    """
+    blobs, im_scales = _get_blobs(im, boxes, mask=True)
+    # blobs['rois']=blobs['rois'][:,1:]
+
+    # reshape network inputs
+    net.blobs['res4f'].reshape(*(feat.shape))
+    net.blobs['rois'].reshape(*(blobs['rois'].shape))
+
+    # do forward
+    net.blobs['res4f'].data[...] = feat
+    net.blobs['rois'].data[...] = blobs['rois']
+    forward_kwargs = {'rois': blobs['rois'].astype(np.float32, copy=False), 'res4f': feat}
+    blobs_out = net.forward()
+
+    seg_result = blobs_out['mask_prob']
+    seg_result = np.array(seg_result > 0.5, dtype=np.int32)
 
     return seg_result
 
@@ -405,7 +468,7 @@ def test_net(net, imdb, max_per_image=400, thresh=-np.inf, vis=False, mask=False
         #
         # _t['misc'].tic()
 
-        print 'im_seg: {:d}/{:d} {:.3f}s {:.3f}s' \
+        print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
               .format(i + 1, num_images, _t['im_detect'].average_time,
                       _t['misc'].average_time)
 
@@ -466,6 +529,88 @@ def test_rpn(net, imdb, max_per_image=400, thresh=-np.inf, vis=False):
         print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
               .format(i + 1, num_images, _t['im_detect'].average_time,
                       _t['misc'].average_time)
+
+    det_file = os.path.join(output_dir, 'detections.pkl')
+    with open(det_file, 'wb') as f:
+        cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
+
+    print 'Evaluating detections'
+    imdb.evaluate_detections(all_boxes, output_dir)
+
+def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=False, mask=False):
+    """Test a Fast R-CNN network on an image database."""
+    num_images = len(imdb.image_index)
+    # all detections are collected into:
+    #    all_boxes[cls][image] = N x 5 array of detections in
+    #    (x1, y1, x2, y2, score)
+    all_boxes = [[[] for _ in xrange(num_images)]
+                 for _ in xrange(imdb.num_classes)]
+
+    output_dir = get_output_dir(imdb, net)
+
+    # timers
+    _t = {'im_detect' : Timer(), 'im_seg' : Timer(),'misc' : Timer()}
+
+    if not cfg.TEST.HAS_RPN:
+        roidb = imdb.roidb
+
+    for i in xrange(num_images):
+        # filter out any ground truth boxes
+        if cfg.TEST.HAS_RPN:
+            box_proposals = None
+        else:
+            # The roidb may contain ground-truth rois (for example, if the roidb
+            # comes from the training or val split). We only want to evaluate
+            # detection on the *non*-ground-truth rois. We select those the rois
+            # that have the gt_classes field set to 0, which means there's no
+            # ground truth.
+            box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
+
+        im = cv2.imread(imdb.image_path_at(i))
+        _t['im_detect'].tic()
+        scores, boxes, feat = im_det(net, im, box_proposals)
+        _t['im_detect'].toc()
+
+        _t['misc'].tic()
+        # skip j = 0, because it's the background class
+        for j in xrange(1, imdb.num_classes):
+            inds = np.where(scores[:, j] > thresh)[0]
+            cls_scores = scores[inds, j]
+            if cfg.TEST.AGNOSTIC:
+                cls_boxes = boxes[inds, 4:8]
+            else:
+                cls_boxes = boxes[inds, j*4:(j+1)*4]
+            cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+                .astype(np.float32, copy=False)
+            keep = nms(cls_dets, cfg.TEST.NMS)
+            cls_dets = cls_dets[keep, :]
+            if vis:
+                vis_detections(im, imdb.classes[j], cls_dets)
+            all_boxes[j][i] = cls_dets
+
+        # Limit to max_per_image detections *over all classes*
+        if max_per_image > 0:
+            image_scores = np.hstack([all_boxes[j][i][:, -1]
+                                      for j in xrange(1, imdb.num_classes)])
+            if len(image_scores) > max_per_image:
+                image_thresh = np.sort(image_scores)[-max_per_image]
+                for j in xrange(1, imdb.num_classes):
+                    keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
+                    all_boxes[j][i] = all_boxes[j][i][keep, :]
+
+        print 'im_detection: {:d}/{:d} {:.3f}s {:.3f}s' \
+              .format(i + 1, num_images, _t['im_detect'].average_time,
+                      _t['misc'].average_time)
+
+
+        _t['im_seg'].tic()
+        for j in xrange(1, imdb.num_classes):
+            seg = im_seg(net_mask, im, feat, all_boxes[j][i][:,:-1])
+        _t['im_seg'].toc()
+
+
+        print 'im_seg: {:d}/{:d} {:.3f}s' \
+              .format(i + 1, num_images, _t['im_seg'].average_time)
 
     det_file = os.path.join(output_dir, 'detections.pkl')
     with open(det_file, 'wb') as f:

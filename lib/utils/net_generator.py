@@ -817,7 +817,8 @@ def main():
     resnet_mask_train_1 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_train_2 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_test_mask = ResNet(deploy=True, scales = scales)
-    resnet_mask_end2end = ResNet(deploy=False, scales = scales)
+    resnet_mask_end2end_train = ResNet(deploy=False, scales = scales)
+    resnet_mask_end2end_test = ResNet(deploy=True, scales = scales)
     #for net in ('18', '34', '50', '101', '152'):
     with open('stage1_rpn_train.pt', 'w') as f:
         f.write(str(resnet_rpn_train_1.resnet_mask_rcnn_rpn(stage=1)))
@@ -834,7 +835,9 @@ def main():
     with open('rpn_test.pt', 'w') as f:
         f.write(str(resnet_rpn_test.resnet_mask_rcnn_rpn()))
     with open('resnet_mask_end2end.pt', 'w') as f:
-        f.write(str(resnet_mask_end2end.resnet_mask_end2end()))
+        f.write(str(resnet_mask_end2end_train.resnet_mask_end2end()))
+    with open('resnet_mask_end2end_test.pt', 'w') as f:
+        f.write(str(resnet_mask_end2end_test.resnet_mask_end2end()))
 
 if __name__ == '__main__':
     main()
