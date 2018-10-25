@@ -140,14 +140,14 @@ class RoIDataLayer(caffe.Layer):
                 idx += 1
 
 
-            # add ins data
-            top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 5)
-            self._name_to_top_map['mask_rois'] = idx
-            idx += 1
+        # add ins data
+        top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 5)
+        self._name_to_top_map['mask_rois'] = idx
+        idx += 1
 
-            top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1, 14, 14)
-            self._name_to_top_map['masks'] = idx
-            idx += 1
+        top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1, 14, 14)
+        self._name_to_top_map['masks'] = idx
+        idx += 1
         # add seg data
         # top[idx].reshape(cfg.TRAIN.IMS_PER_BATCH, 1,
         #                  max(cfg.TRAIN.SCALES), cfg.TRAIN.MAX_SIZE)

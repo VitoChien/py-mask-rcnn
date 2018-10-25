@@ -8,7 +8,7 @@ from caffe import layers as L, params as P, to_proto
 
 class ResNet(): 
     def __init__(self, stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, feat_stride = 16, \
-                 pooled_size=[14, 14], module = "normal", pooling = "align", scales=[4, 8, 16, 32], ratio=[0.5, 1, 2], rois_num=128):
+                 pooled_size=[7, 7], out_size=[14, 14], module = "normal", pooling = "align", scales=[4, 8, 16, 32], ratio=[0.5, 1, 2], rois_num=128):
         self.stages = stages
         self.channals = channals
         self.deploy = deploy
@@ -20,6 +20,8 @@ class ResNet():
         self.pooling = pooling
         self.pooled_w = pooled_size[0] 
         self.pooled_h = pooled_size[1]
+        self.out_w = out_size[0]
+        self.out_h = out_size[1]
         self.scales =scales
         self.ratio =ratio
         self.rois_num = rois_num
@@ -254,7 +256,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
                                     ntop=3,)
                 return self.net["data"], self.net["im_info"], self.net["gt_boxes"]
             else:
@@ -264,7 +266,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
                                     ntop=3,)
                 return self.net["data"], self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], \
                         self.net["bbox_outside_weights"]
@@ -289,7 +291,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
                                     ntop=5,)
                 return self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["mask_rois"], self.net["masks"]
             else:
@@ -299,7 +301,7 @@ class ResNet():
                                     python_param=dict(
                                                     module='roi_data_layer.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.pooled_h)),
+                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
                                     ntop=8,)
                 return self.net["data"], self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], \
                         self.net["bbox_outside_weights"], self.net["mask_rois"], self.net["masks"]
@@ -433,16 +435,16 @@ class ResNet():
             self.net["cls_prob"] =  L.Softmax(cls_score)
         return self.net.to_proto()
 
-    def resnet_mask_rcnn(self):
+    def resnet_mask_end2end(self):
         channals = self.channals
         if not self.deploy:
-            data, im_info, gt_boxes, ins_crop = self.data_layer_train_with_ins()
+            data, im_info, gt_boxes, mask_rois, masks = \
+                self.data_layer_train_with_ins(with_rpn=True)
         else:
             data, im_info = self.data_layer_test()
             gt_boxes = None
         conv1 = self.conv_factory("conv1", data, 7, channals, 2, 3, bias_term=True)
         pool1 = self.pooling_layer(3, 2, 'MAX', 'pool1', conv1)
-        k=0
         index = 1
         out = pool1
         for i in self.stages[:-1]:
@@ -463,35 +465,34 @@ class ResNet():
                     else:
                         out = self.residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals)
             channals *= 2
-
         if not self.deploy:
-            rpn_cls_loss, rpn_loss_bbox, rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
+            rpn_cls_loss, rpn_loss_bbox, rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data, fixed=False)
             rois, labels, bbox_targets, bbox_inside_weights, bbox_outside_weights = \
                 self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
-            self.net["ins_crop"] = L.Python(rois, ins,
-                            name = 'ins_crop',
-                            python_param=dict(
-                                            module='crop_seg.layer',
-                                            layer='CropSegLayer',
-                                            param_str='"pooled_w": %s \n "pooled_w": %s ' %(self.pooled_w, self.pooled_w)
-                                            ),
-                            ntop=1,)
-            ins_crop = self.net["ins_crop"]
         else:
             rpn_cls_score_reshape, rpn_bbox_pred = self.rpn(out, gt_boxes, im_info, data)
-            rois = self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
+            rois, scores = self.roi_proposals(rpn_cls_score_reshape, rpn_bbox_pred, im_info, gt_boxes)
 
-        
-        feat_aligned = self.roi_align(out, rois)
+        feat_out = out
+
+        if not self.deploy:
+            self.net["mask_rois_reshape"] = L.Reshape(mask_rois, name="mask_rois_reshape", reshape_param={'shape': {'dim': [-1, 5, 1, 1]}})
+            self.net["rois_cat"] = L.Concat(rois, self.net["mask_rois_reshape"], name="rois_cat", axis=0)
+            rois=self.net["rois_cat"]
+
+        feat_aligned = self.roi_align("det_mask", feat_out, rois)
+        # if not self.deploy:
+        #     self.net["silence_mask_rois"] = L.Silence(mask_rois, ntop=0)
+        # if not self.deploy:
+        #     mask_feat_aligned = self.roi_align("mask", feat_out, mask_rois)
+        # else:
+        #     mask_feat_aligned = self.roi_align("mask", feat_out, rois)
         out = feat_aligned
 
         index += 1
         for j in range(self.stages[-1]):
-            if j==0:
-                if index == 2:
-                    stride = 1
-                else:
-                    stride = 2
+            if j == 0:
+                stride = 1
                 if self.module == "normal":
                     out = self.residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride)
                 else:
@@ -501,28 +502,50 @@ class ResNet():
                     out = self.residual_block_shortcut("res" + str(index) + ascii_lowercase[j], out, channals)
                 else:
                     out = self.residual_block_shortcut_basic("res" + str(index) + ascii_lowercase[j], out, channals)
-        
+
+        if not self.deploy:
+            self.net["det_feat"], self.net["mask_feat"] = L.Slice(out, ntop=2, name='slice', slice_param=dict(slice_dim=0, slice_point=self.rois_num))
+            feat_mask = self.net["mask_feat"]
+            out = self.net["det_feat"]
+
         # for bbox detection
-        pool5 = self.ave_pool(7, 1, "pool5", out)
+        pool5 = self.ave_pool(7, 1, "pool5",  out)
         cls_score, bbox_pred = self.final_cls_bbox(pool5)
 
         if not self.deploy:
-            self.net["loss_cls"] = L.SoftmaxWithLoss(cls_score, labels, loss_weight= 1, propagate_down=[1,0])
-            self.net["loss_bbox"] = L.SmoothL1Loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights,\
-                                loss_weight= 1)
+            self.net["loss_cls"] = L.SoftmaxWithLoss(cls_score, labels, loss_weight=1, propagate_down=[1, 0])
+            self.net["loss_bbox"] = L.SmoothL1Loss(bbox_pred, bbox_targets, bbox_inside_weights, bbox_outside_weights, \
+                                                   loss_weight=1)
         else:
-            self.net["cls_prob"] =  L.Softmax(cls_score)
-        
-        #for mask prediction
-        mask_conv1 = self.conv_factory("mask_conv1", feat_aligned, 3, 256, 1, 1, bias_term=True)
-        mask_out = self.conv_factory("mask_out", mask_conv1, 1, self.classes, 1, 0, bias_term=True)
+            self.net["cls_prob"] = L.Softmax(cls_score)
+
+
+        # # for mask prediction
         if not self.deploy:
-            self.net["loss_mask"] = L.SoftmaxWithLoss(mask_out, ins_crop, loss_weight= 1, propagate_down=[1,0],
-                                                    loss_param = dict(
-                                                    normalization = 1
-                                                    ))
+            mask_feat_aligned = feat_mask
         else:
-            self.net["mask_prob"] =  L.Softmax(cls_score)
+            mask_feat_aligned = out
+        # out = mask_feat_aligned
+        out = L.Deconvolution(mask_feat_aligned, name = "mask_deconv1",convolution_param=dict(kernel_size=2, stride=2,
+                                            num_output=256, pad=0, bias_term=False,
+                                            weight_filler=dict(type='msra'),
+                                            bias_filler=dict(type='constant')))
+        out = L.BatchNorm(out, name="bn_mask_deconv1",in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
+        out = L.Scale(out, name = "scale_mask_deconv1", in_place=True, scale_param=dict(bias_term=True))
+        out = L.ReLU(out, name="mask_deconv1_relu", in_place=True)
+        mask_out = self.conv_factory("mask_out", out, 1, self.classes-1, 1, 0, bias_term=True)
+        # for i in range(4):
+        #     out = self.conv_factory("mask_conv"+str(i), out, 3, 256, 1, 1, bias_term=False)
+        # mask_out = self.conv_factory("mask_out", out, 1, 1, 1, 0, bias_term=False)
+
+        if not self.deploy:
+            self.net["loss_mask"] = L.SigmoidCrossEntropyLoss(mask_out, masks, loss_weight=1, propagate_down=[1, 0],
+                                                      loss_param=dict(
+                                                          normalization=1,
+                                                          ignore_label = -1
+                                                      ))
+        else:
+            self.net["mask_prob"] = L.Sigmoid(mask_out)
 
         return self.net.to_proto()
 
@@ -760,10 +783,7 @@ class ResNet():
         index += 1
         for j in range(self.stages[-1]):
             if j == 0:
-                if index == 2:
-                    stride = 1
-                else:
-                    stride = 2
+                stride = 1
                 if self.module == "normal":
                     out = self.residual_block("res" + str(index) + ascii_lowercase[j], out, channals, stride)
                 else:
@@ -797,6 +817,7 @@ def main():
     resnet_mask_train_1 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_train_2 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_test_mask = ResNet(deploy=True, scales = scales)
+    resnet_mask_end2end = ResNet(deploy=False, scales = scales)
     #for net in ('18', '34', '50', '101', '152'):
     with open('stage1_rpn_train.pt', 'w') as f:
         f.write(str(resnet_rpn_train_1.resnet_mask_rcnn_rpn(stage=1)))
@@ -812,6 +833,8 @@ def main():
         f.write(str(resnet_mask_test_mask.resnet_mask_rcnn_test()))
     with open('rpn_test.pt', 'w') as f:
         f.write(str(resnet_rpn_test.resnet_mask_rcnn_rpn()))
+    with open('resnet_mask_end2end.pt', 'w') as f:
+        f.write(str(resnet_mask_end2end.resnet_mask_end2end()))
 
 if __name__ == '__main__':
     main()

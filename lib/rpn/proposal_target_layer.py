@@ -25,15 +25,15 @@ class ProposalTargetLayer(caffe.Layer):
         self._num_classes = layer_params['num_classes']
 
         # sampled rois (0, x1, y1, x2, y2)
-        top[0].reshape(1, 5, 1, 1)
+        top[0].reshape(cfg.TRAIN.BATCH_SIZE, 5, 1, 1)
         # labels
-        top[1].reshape(1, 1, 1, 1)
+        top[1].reshape(cfg.TRAIN.BATCH_SIZE, 1, 1, 1)
         # bbox_targets
-        top[2].reshape(1, self._num_classes * 4, 1, 1)
+        top[2].reshape(cfg.TRAIN.BATCH_SIZE, self._num_classes * 4, 1, 1)
         # bbox_inside_weights
-        top[3].reshape(1, self._num_classes * 4, 1, 1)
+        top[3].reshape(cfg.TRAIN.BATCH_SIZE, self._num_classes * 4, 1, 1)
         # bbox_outside_weights
-        top[4].reshape(1, self._num_classes * 4, 1, 1)
+        top[4].reshape(cfg.TRAIN.BATCH_SIZE, self._num_classes * 4, 1, 1)
 
     def forward(self, bottom, top):
         # Proposal ROIs (0, x1, y1, x2, y2) coming from RPN

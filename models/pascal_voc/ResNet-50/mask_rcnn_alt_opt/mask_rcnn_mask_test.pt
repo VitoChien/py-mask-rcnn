@@ -2091,8 +2091,8 @@ layer {
   bottom: "rois"
   top: "ROIAlignmask"
   roi_align_param {
-    pooled_h: 14
-    pooled_w: 14
+    pooled_h: 7
+    pooled_w: 7
     spatial_scale: 0.0625
   }
 }
@@ -2106,7 +2106,7 @@ layer {
     bias_term: false
     pad: 0
     kernel_size: 1
-    stride: 2
+    stride: 1
     weight_filler {
       type: "msra"
     }
@@ -2223,7 +2223,7 @@ layer {
     bias_term: false
     pad: 0
     kernel_size: 1
-    stride: 2
+    stride: 1
     weight_filler {
       type: "msra"
     }
