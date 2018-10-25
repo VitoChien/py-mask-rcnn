@@ -51,15 +51,28 @@ def get_minibatch(roidb, num_classes, mask_h_w):
         blobs['im_info'] = np.array(
             [[im_blob.shape[2], im_blob.shape[3], im_scales[0]]],
             dtype=np.float32)
+        mask_rois_blob = np.zeros((0, 5), dtype=np.float32)
+        masks_blob = np.zeros((0, 14, 14), dtype=np.float32)
+        for im_i in xrange(num_images):
+            labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, mask_rois, masks \
+                = _sample_rois(roidb[im_i], im_scales[im_i], fg_rois_per_image, rois_per_image,
+                               num_classes, mask_h_w)
+            rois = im_rois
+            batch_ind_mask =  im_i * np.ones((mask_rois.shape[0], 1))
+            mask_rois_blob_this_image = np.hstack((batch_ind_mask, mask_rois))
+            mask_rois_blob = np.vstack((mask_rois_blob, mask_rois_blob_this_image))
+            masks_blob = np.vstack((masks_blob, masks))
+
+        blobs['mask_rois'] = mask_rois_blob
+        blobs['masks'] = masks_blob
     else: # not using RPN
         # Now, build the region of interest and label blobs
         rois_blob = np.zeros((0, 5), dtype=np.float32)
         mask_rois_blob = np.zeros((0, 5), dtype=np.float32)
         labels_blob = np.zeros((0), dtype=np.float32)
         bbox_targets_blob = np.zeros((0, 4 * num_classes), dtype=np.float32)
-        ins_blob = np.zeros((0, 14, 14), dtype=np.float32)
         bbox_inside_blob = np.zeros(bbox_targets_blob.shape, dtype=np.float32)
-        masks_blob = np.zeros(ins_blob.shape, dtype=np.float32)
+        masks_blob = np.zeros((0, 14, 14), dtype=np.float32)
         # all_overlaps = []
         for im_i in xrange(num_images):
             labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, mask_rois, masks \
@@ -89,14 +102,15 @@ def get_minibatch(roidb, num_classes, mask_h_w):
 
         blobs['rois'] = rois_blob
         blobs['labels'] = labels_blob
-        blobs['mask_rois'] = mask_rois_blob
-        blobs['masks'] = masks_blob
 
         if cfg.TRAIN.BBOX_REG:
             blobs['bbox_targets'] = bbox_targets_blob
             blobs['bbox_inside_weights'] = bbox_inside_blob
             blobs['bbox_outside_weights'] = \
                 np.array(bbox_inside_blob > 0).astype(np.float32)
+
+        blobs['mask_rois'] = mask_rois_blob
+        blobs['masks'] = masks_blob
 
     return blobs
 
@@ -146,6 +160,7 @@ def _sample_rois(roidb, im_scale, fg_rois_per_image, rois_per_image, num_classes
             roidb['bbox_targets'][keep_inds, :], num_classes)
 
     mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w)
+    mask_rois = mask_rois * im_scale
     #mask_rois = mask_rois[np.newaxis, :]
     return labels, overlaps, rois, bbox_targets, bbox_inside_weights, mask_rois, masks
 
@@ -211,7 +226,6 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w):
         mask_class_labels = np.zeros((1, ))
         # Mark that the first roi has a mask
         roi_has_mask[0] = 1
-    rois_fg *= im_scale
     return rois_fg, roi_has_mask, masks
 
 def get_mask(mask_in, roi, size):

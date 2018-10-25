@@ -54,6 +54,8 @@ def parse_args():
                         default=400, type=int)
     parser.add_argument('--rpn_file', dest='rpn_file',
                         default=None, type=str)
+    parser.add_argument('--mask_out_path', dest='mask_out_path',
+                        default="./output/mask_out_default", type=str)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -101,4 +103,4 @@ if __name__ == '__main__':
         if cfg.TEST.PROPOSAL_METHOD == 'rpn':
             imdb.config['rpn_file'] = args.rpn_file
 
-    test_net_mask(net, net_mask, imdb, max_per_image=args.max_per_image, vis=args.vis)
+    test_net_mask(net, net_mask, imdb, max_per_image=args.max_per_image, vis=args.vis, save_path=args.mask_out_path)

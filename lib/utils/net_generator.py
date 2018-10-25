@@ -528,8 +528,7 @@ class ResNet():
         # out = mask_feat_aligned
         out = L.Deconvolution(mask_feat_aligned, name = "mask_deconv1",convolution_param=dict(kernel_size=2, stride=2,
                                             num_output=256, pad=0, bias_term=False,
-                                            weight_filler=dict(type='msra'),
-                                            bias_filler=dict(type='constant')))
+                                            weight_filler=dict(type='msra')))
         out = L.BatchNorm(out, name="bn_mask_deconv1",in_place=True, batch_norm_param=dict(use_global_stats=self.deploy))
         out = L.Scale(out, name = "scale_mask_deconv1", in_place=True, scale_param=dict(bias_term=True))
         out = L.ReLU(out, name="mask_deconv1_relu", in_place=True)

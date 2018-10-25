@@ -2664,9 +2664,6 @@ layer {
     weight_filler {
       type: "msra"
     }
-    bias_filler {
-      type: "constant"
-    }
   }
 }
 layer {

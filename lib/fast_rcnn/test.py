@@ -283,6 +283,7 @@ def im_seg(net, im, feat, boxes=None):
     blobs_out = net.forward()
 
     seg_result = blobs_out['mask_prob']
+    print(np.unique(seg_result))
     seg_result = np.array(seg_result > 0.5, dtype=np.int32)
 
     return seg_result
@@ -537,7 +538,7 @@ def test_rpn(net, imdb, max_per_image=400, thresh=-np.inf, vis=False):
     print 'Evaluating detections'
     imdb.evaluate_detections(all_boxes, output_dir)
 
-def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=False, mask=False):
+def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=False, save_path="./output/"):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
     # all detections are collected into:
@@ -547,6 +548,9 @@ def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=Fa
                  for _ in xrange(imdb.num_classes)]
 
     output_dir = get_output_dir(imdb, net)
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
     # timers
     _t = {'im_detect' : Timer(), 'im_seg' : Timer(),'misc' : Timer()}
@@ -602,12 +606,23 @@ def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=Fa
               .format(i + 1, num_images, _t['im_detect'].average_time,
                       _t['misc'].average_time)
 
-
         _t['im_seg'].tic()
+        out_mask = np.zeros((im.shape[0], im.shape[1]))
         for j in xrange(1, imdb.num_classes):
-            seg = im_seg(net_mask, im, feat, all_boxes[j][i][:,:-1])
+            ins_index = 1
+            boxes_this_im = all_boxes[j][i][:, :-1]
+            seg = im_seg(net_mask, im, feat, boxes_this_im)
+            for ii in xrange(seg.shape[0]):
+                seg_now = seg[ii][0]
+                box_now = boxes_this_im[ii]
+                seg_org_size = cv2.resize(seg_now, (box_now[2] - box_now[0],box_now[3] - box_now[1]), interpolation=cv2.INTER_NEAREST)
+                seg_org_size = seg_org_size*ins_index
+                out_mask[box_now[1]:box_now[1] + seg_org_size.shape[0], box_now[0]:box_now[0] + seg_org_size.shape[1]] = seg_org_size
+                ins_index += 1
         _t['im_seg'].toc()
 
+        mask_save_path = os.path.join(save_path, os.path.basename(imdb.image_path_at(i)).replace(".jpg", ".png"))
+        cv2.imwrite(mask_save_path, out_mask)
 
         print 'im_seg: {:d}/{:d} {:.3f}s' \
               .format(i + 1, num_images, _t['im_seg'].average_time)
