@@ -283,7 +283,7 @@ def im_seg(net, im, feat, boxes=None):
     blobs_out = net.forward()
 
     seg_result = blobs_out['mask_prob']
-    print(np.unique(seg_result))
+    # print(np.unique(seg_result))
     seg_result = np.array(seg_result > 0.5, dtype=np.int32)
 
     return seg_result
