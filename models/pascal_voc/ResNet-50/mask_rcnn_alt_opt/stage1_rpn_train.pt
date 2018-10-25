@@ -2117,7 +2117,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 24
+    num_output: 30
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2144,7 +2144,7 @@ layer {
     lr_mult: 2
   }
   convolution_param {
-    num_output: 48
+    num_output: 60
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2187,7 +2187,7 @@ layer {
   python_param {
     module: "rpn.anchor_target_layer"
     layer: "AnchorTargetLayer"
-    param_str: "{\"feat_stride\": 16,\"scales\": [4, 8, 16, 32]}"
+    param_str: "{\"feat_stride\": 16,\"scales\": [32, 64, 128, 256, 512]}"
   }
 }
 layer {

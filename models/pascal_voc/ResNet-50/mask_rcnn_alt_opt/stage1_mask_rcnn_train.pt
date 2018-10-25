@@ -1946,7 +1946,7 @@ layer {
     lr_mult: 0
   }
   convolution_param {
-    num_output: 24
+    num_output: 30
     pad: 0
     kernel_size: 1
     stride: 1
@@ -1973,7 +1973,7 @@ layer {
     lr_mult: 0
   }
   convolution_param {
-    num_output: 48
+    num_output: 60
     pad: 0
     kernel_size: 1
     stride: 1
@@ -2476,7 +2476,7 @@ layer {
   top: "mask_feat"
   slice_param {
     slice_dim: 0
-    slice_point: 128
+    slice_point: 64
   }
 }
 layer {

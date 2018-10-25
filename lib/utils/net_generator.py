@@ -807,8 +807,8 @@ class ResNet():
         return self.net.to_proto()
 
 def main():
-    rois_num = 128
-    scales = [4,8,16,32]
+    rois_num = 64
+    scales = [32, 64, 128, 256, 512]
     resnet_rpn_test = ResNet(deploy=True, scales = scales)
     resnet_rpn_train_1 = ResNet(deploy=False, scales = scales)
     resnet_rpn_train_2 = ResNet(deploy=False, scales = scales)
@@ -816,7 +816,7 @@ def main():
     resnet_mask_train_1 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_train_2 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_test_mask = ResNet(deploy=True, scales = scales)
-    resnet_mask_end2end_train = ResNet(deploy=False, scales = scales)
+    resnet_mask_end2end_train = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_end2end_test = ResNet(deploy=True, scales = scales)
     #for net in ('18', '34', '50', '101', '152'):
     with open('stage1_rpn_train.pt', 'w') as f:

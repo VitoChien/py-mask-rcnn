@@ -614,10 +614,18 @@ def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=Fa
             seg = im_seg(net_mask, im, feat, boxes_this_im)
             for ii in xrange(seg.shape[0]):
                 seg_now = seg[ii][0]
+                # seg_now = np.transpose(seg_now)
                 box_now = boxes_this_im[ii]
-                seg_org_size = cv2.resize(seg_now, (box_now[2] - box_now[0],box_now[3] - box_now[1]), interpolation=cv2.INTER_NEAREST)
+                box_now = box_now.astype(int)
+                # im_now=im[box_now[1]: box_now[3], box_now[0]:box_now[2]]
+                # cv2.imshow("test", im_now)
+                # cv2.waitKey()
+                seg_org_size = cv2.resize(seg_now, (box_now[2] - box_now[0], box_now[3] - box_now[1]), interpolation=cv2.INTER_NEAREST)
+                # print((seg_org_size*99999).shape)
+                # cv2.imshow("seg", seg_org_size*99999)
+                # cv2.waitKey()
                 seg_org_size = seg_org_size*ins_index
-                out_mask[box_now[1]:box_now[1] + seg_org_size.shape[0], box_now[0]:box_now[0] + seg_org_size.shape[1]] = seg_org_size
+                out_mask[box_now[1]: box_now[3], box_now[0]:box_now[2]] = seg_org_size
                 ins_index += 1
         _t['im_seg'].toc()
 

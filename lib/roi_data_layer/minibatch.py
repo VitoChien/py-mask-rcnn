@@ -57,7 +57,6 @@ def get_minibatch(roidb, num_classes, mask_h_w):
             labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, mask_rois, masks \
                 = _sample_rois(roidb[im_i], im_scales[im_i], fg_rois_per_image, rois_per_image,
                                num_classes, mask_h_w)
-            rois = im_rois
             batch_ind_mask =  im_i * np.ones((mask_rois.shape[0], 1))
             mask_rois_blob_this_image = np.hstack((batch_ind_mask, mask_rois))
             mask_rois_blob = np.vstack((mask_rois_blob, mask_rois_blob_this_image))
@@ -181,10 +180,13 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w):
     roi_has_mask = labels.copy()
     roi_has_mask[roi_has_mask > 0] = 1
     mask_file = cv2.imread(roidb["ins"], cv2.IMREAD_GRAYSCALE)
+    if roidb['flipped']:
+        mask_file = mask_file[:, ::-1]
     # print("################")
     # print(mask_file.shape)
     # mask_file = (mask_file[:,:,0] != 0 | mask_file[:,:,1] != 0 | mask_file[:,:,2] != 0)
     # mask_file = (mask_file != [0,0,0])[:,:,0]
+
 
     if fg_inds.shape[0] > 0:
 
@@ -205,11 +207,12 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w):
         # add fg targets
         for i in range(rois_fg.shape[0]):
             fg_bbox_ind = fg_bbox_inds[i]
-            roi_fg_now = rois_fg[fg_bbox_ind]
+            boxes_from_masks_now=boxes[fg_bbox_ind]
+            roi_fg_now = rois_fg[i]
             # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
             # print(roi_fg)
-            mask = get_mask(mask_file, roi_fg_now*im_scale, M)
+            mask = get_mask(mask_file, roi_fg_now*im_scale, boxes_from_masks_now, M)
             mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
             masks[i, :] = mask
             # masks[i, :] = np.reshape(mask, (M, M))
@@ -228,7 +231,7 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, im_scale, labels, mask_h_w):
         roi_has_mask[0] = 1
     return rois_fg, roi_has_mask, masks
 
-def get_mask(mask_in, roi, size):
+def get_mask(mask_in, roi, gt_rois, size):
     x_start = int(math.floor(roi[1]))
     x_end = int(math.ceil(roi[3]))
     y_start = int(math.floor(roi[0]))
@@ -250,9 +253,29 @@ def get_mask(mask_in, roi, size):
         x_start -= 1
     if y_start == mask_in.shape[1]:
         y_start -= 1
+
     patch_cropped = mask_in[x_start:x_end, y_start:y_end].copy()
+
+    x_start_gt = int(math.floor(gt_rois[1]))
+    x_end_gt = int(math.ceil(gt_rois[3]))
+    y_start_gt = int(math.floor(gt_rois[0]))
+    y_end_gt = int(math.ceil(gt_rois[2]))
+
+    gt_patch_cropped = mask_in[x_start_gt:x_end_gt, y_start_gt:y_end_gt].copy()
+    # find the main obj by count the number of pixel
+    ids = np.unique(patch_cropped)
+    size_ = -1
+    id_pick = -1
+    for id in ids:
+        mask = (gt_patch_cropped == id)
+        arr_new = gt_patch_cropped[mask]
+        if arr_new.size > size_:
+            size_ = arr_new.size
+            id_pick = id
+
     patch_resized = cv2.resize(patch_cropped, (size,size), interpolation=cv2.INTER_NEAREST)
-    return patch_resized
+    mask = np.array(patch_resized == id_pick, dtype=np.int32)
+    return mask
 
 def _get_image_blob(roidb, scale_inds):
     """Builds an input blob from the images in the roidb at the specified
