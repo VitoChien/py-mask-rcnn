@@ -203,12 +203,12 @@ class ResNet():
                                             #param_str='"feat_stride": %s \n "scales": !!python/tuple %s ' %(self.feat_stride, self.scales)),
                             ntop=1,)
             self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], self.net["bbox_outside_weights"] = \
-                        L.Python(self.net["rpn_rois"], self.net["gt_boxes"],
+                        L.Python(self.net["rpn_rois"], self.net["gt_boxes"], self.net["ins"],
                             name = 'roi-data',
                             python_param=dict(
                                             module='rpn.proposal_target_layer',
                                             layer='ProposalTargetLayer',
-                                            param_str='"num_classes": %s' %(self.classes)),
+                                            param_str='{"num_classes": %s,"pooled_w_h": %s}' %(self.classes, self.pooled_h)),
                             ntop=5,)
             return self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], self.net["bbox_outside_weights"]
         else:
@@ -286,23 +286,38 @@ class ResNet():
     def data_layer_train_with_ins(self, with_rpn=False):
         if not self.deploy:
             if with_rpn:
-                self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["mask_rois"], self.net["masks"]= L.Python(
+                # self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["mask_rois"], self.net["masks"]= L.Python(
+                #                     name = 'input-data',
+                #                     python_param=dict(
+                #                                     module='roi_data_layer.layer',
+                #                                     layer='RoIDataLayer',
+                #                                     param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
+                #                     ntop=5,)
+                self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["ins"] = L.Python(
                                     name = 'input-data',
                                     python_param=dict(
-                                                    module='roi_data_layer.layer',
+                                                    module='roi_data_layer_with_instance.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
-                                    ntop=5,)
+                                                    param_str='{"num_classes": %s}' %(self.classes)),
+                                    ntop=4,)
                 return self.net["data"], self.net["im_info"], self.net["gt_boxes"], self.net["mask_rois"], self.net["masks"]
             else:
+                # self.net["data"], self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], \
+                # self.net["bbox_outside_weights"], self.net["mask_rois"], self.net["masks"] = L.Python(
+                #                     name = 'input-data',
+                #                     python_param=dict(
+                #                                     module='roi_data_layer.layer',
+                #                                     layer='RoIDataLayer',
+                #                                     param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
+                #                     ntop=8,)
                 self.net["data"], self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], \
-                self.net["bbox_outside_weights"], self.net["mask_rois"], self.net["masks"] = L.Python(
+                self.net["bbox_outside_weights"], self.net["ins"] = L.Python(
                                     name = 'input-data',
                                     python_param=dict(
-                                                    module='roi_data_layer.layer',
+                                                    module='roi_data_layer_with_instance.layer',
                                                     layer='RoIDataLayer',
-                                                    param_str='{"num_classes": %s,"output_h_w": %s}' %(self.classes, self.out_h)),
-                                    ntop=8,)
+                                                    param_str='{"num_classes": %s}' %(self.classes)),
+                                    ntop=7,)
                 return self.net["data"], self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], \
                         self.net["bbox_outside_weights"], self.net["mask_rois"], self.net["masks"]
 
