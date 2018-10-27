@@ -169,7 +169,8 @@ def solve(proto, roidb, pretrained_model, gpus, uid, rank, output_dir, max_iter)
         solver.step(1)
         timer.toc()
         count += 1
-        if count % (10 * solver.param.display) == 0:
+        # if count % (solver.param.display) == 0:
+        if count % 200 == 0:
             if rank == 0:
                 print 'iter: {}, speed: {:.3f}s / iter'.format(count, timer.average_time)
         if count % cfg.TRAIN.SNAPSHOT_ITERS == 0:

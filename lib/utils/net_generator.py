@@ -210,7 +210,7 @@ class ResNet():
                                             module='rpn.proposal_target_layer',
                                             layer='ProposalTargetLayer',
                                             param_str='{"num_classes": %s,"out_size": %s}' %(self.classes, self.out_w)),
-                            ntop=5,)
+                            ntop=7,)
             return self.net["rois"], self.net["labels"], self.net["bbox_targets"], self.net["bbox_inside_weights"], self.net["bbox_outside_weights"], self.net["mask_rois"], self.net["masks"]
         else:
             self.net["rois"],self.net["scores"] = L.Python(self.net["rpn_cls_prob_reshape"], rpn_bbox_pred, im_info,
@@ -823,32 +823,32 @@ class ResNet():
         return self.net.to_proto()
 
 def main():
-    rois_num = 32
+    rois_num = 64
     scales = [32, 64, 128, 256, 512]
-    resnet_rpn_test = ResNet(deploy=True, scales = scales)
-    resnet_rpn_train_1 = ResNet(deploy=False, scales = scales)
-    resnet_rpn_train_2 = ResNet(deploy=False, scales = scales)
-    resnet_mask_test = ResNet(deploy=True, scales = scales)
-    resnet_mask_train_1 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
-    resnet_mask_train_2 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
-    resnet_mask_test_mask = ResNet(deploy=True, scales = scales)
+    # resnet_rpn_test = ResNet(deploy=True, scales = scales)
+    # resnet_rpn_train_1 = ResNet(deploy=False, scales = scales)
+    # resnet_rpn_train_2 = ResNet(deploy=False, scales = scales)
+    # resnet_mask_test = ResNet(deploy=True, scales = scales)
+    # resnet_mask_train_1 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
+    # resnet_mask_train_2 = ResNet(deploy=False, scales = scales, rois_num=rois_num)
+    # resnet_mask_test_mask = ResNet(deploy=True, scales = scales)
     resnet_mask_end2end_train = ResNet(deploy=False, scales = scales, rois_num=rois_num)
     resnet_mask_end2end_test = ResNet(deploy=True, scales = scales)
     #for net in ('18', '34', '50', '101', '152'):
-    with open('stage1_rpn_train.pt', 'w') as f:
-        f.write(str(resnet_rpn_train_1.resnet_mask_rcnn_rpn(stage=1)))
-    with open('stage2_rpn_train.pt', 'w') as f:
-        f.write(str(resnet_rpn_train_2.resnet_mask_rcnn_rpn(stage=2)))
-    with open('stage1_mask_rcnn_train.pt', 'w') as f:
-        f.write(str(resnet_mask_train_1.resnet_mask_rcnn_mask_rcnn(stage=1)))
-    with open('stage2_mask_rcnn_train.pt', 'w') as f:
-        f.write(str(resnet_mask_train_2.resnet_mask_rcnn_mask_rcnn(stage=2)))
-    with open('mask_rcnn_test.pt', 'w') as f:
-        f.write(str(resnet_mask_test.resnet_mask_rcnn_mask_rcnn()))
-    with open('mask_rcnn_mask_test.pt', 'w') as f:
-        f.write(str(resnet_mask_test_mask.resnet_mask_rcnn_test()))
-    with open('rpn_test.pt', 'w') as f:
-        f.write(str(resnet_rpn_test.resnet_mask_rcnn_rpn()))
+    # with open('stage1_rpn_train.pt', 'w') as f:
+    #     f.write(str(resnet_rpn_train_1.resnet_mask_rcnn_rpn(stage=1)))
+    # with open('stage2_rpn_train.pt', 'w') as f:
+    #     f.write(str(resnet_rpn_train_2.resnet_mask_rcnn_rpn(stage=2)))
+    # with open('stage1_mask_rcnn_train.pt', 'w') as f:
+    #     f.write(str(resnet_mask_train_1.resnet_mask_rcnn_mask_rcnn(stage=1)))
+    # with open('stage2_mask_rcnn_train.pt', 'w') as f:
+    #     f.write(str(resnet_mask_train_2.resnet_mask_rcnn_mask_rcnn(stage=2)))
+    # with open('mask_rcnn_test.pt', 'w') as f:
+    #     f.write(str(resnet_mask_test.resnet_mask_rcnn_mask_rcnn()))
+    # with open('mask_rcnn_mask_test.pt', 'w') as f:
+    #     f.write(str(resnet_mask_test_mask.resnet_mask_rcnn_test()))
+    # with open('rpn_test.pt', 'w') as f:
+    #     f.write(str(resnet_rpn_test.resnet_mask_rcnn_rpn()))
     with open('resnet_mask_end2end.pt', 'w') as f:
         f.write(str(resnet_mask_end2end_train.resnet_mask_end2end()))
     with open('resnet_mask_end2end_test.pt', 'w') as f:

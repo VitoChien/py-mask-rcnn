@@ -4,12 +4,11 @@ layer {
   top: "data"
   top: "im_info"
   top: "gt_boxes"
-  top: "mask_rois"
-  top: "masks"
+  top: "ins"
   python_param {
-    module: "roi_data_layer.layer"
+    module: "roi_data_layer_with_instance.layer"
     layer: "RoIDataLayer"
-    param_str: "{\"num_classes\": 2,\"output_h_w\": 14}"
+    param_str: "{\"num_classes\": 2}"
   }
 }
 layer {
@@ -2081,36 +2080,25 @@ layer {
   type: "Python"
   bottom: "rpn_rois"
   bottom: "gt_boxes"
+  bottom: "ins"
   top: "rois"
   top: "labels"
   top: "bbox_targets"
   top: "bbox_inside_weights"
   top: "bbox_outside_weights"
+  top: "mask_rois"
+  top: "masks"
   python_param {
     module: "rpn.proposal_target_layer"
     layer: "ProposalTargetLayer"
-    param_str: "\"num_classes\": 2"
-  }
-}
-layer {
-  name: "mask_rois_reshape"
-  type: "Reshape"
-  bottom: "mask_rois"
-  top: "mask_rois_reshape"
-  reshape_param {
-    shape {
-      dim: -1
-      dim: 5
-      dim: 1
-      dim: 1
-    }
+    param_str: "{\"num_classes\": 2,\"out_size\": 14}"
   }
 }
 layer {
   name: "rois_cat"
   type: "Concat"
   bottom: "rois"
-  bottom: "mask_rois_reshape"
+  bottom: "mask_rois"
   top: "rois_cat"
   concat_param {
     axis: 0

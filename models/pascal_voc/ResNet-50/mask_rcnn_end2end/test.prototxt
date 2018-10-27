@@ -2552,3 +2552,90 @@ layer {
   bottom: "cls_score"
   top: "cls_prob"
 }
+layer {
+  name: "mask_deconv1"
+  type: "Deconvolution"
+  bottom: "res5c"
+  top: "Deconvolution1"
+  convolution_param {
+    num_output: 256
+    bias_term: false
+    pad: 0
+    kernel_size: 2
+    stride: 2
+    weight_filler {
+      type: "msra"
+    }
+  }
+}
+layer {
+  name: "bn_mask_deconv1"
+  type: "BatchNorm"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
+  batch_norm_param {
+    use_global_stats: true
+  }
+}
+layer {
+  name: "scale_mask_deconv1"
+  type: "Scale"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "mask_deconv1_relu"
+  type: "ReLU"
+  bottom: "Deconvolution1"
+  top: "Deconvolution1"
+}
+layer {
+  name: "mask_out"
+  type: "Convolution"
+  bottom: "Deconvolution1"
+  top: "mask_out"
+  convolution_param {
+    num_output: 1
+    bias_term: true
+    pad: 0
+    kernel_size: 1
+    stride: 1
+    weight_filler {
+      type: "msra"
+    }
+    engine: CUDNN
+  }
+}
+layer {
+  name: "bn_mask_out"
+  type: "BatchNorm"
+  bottom: "mask_out"
+  top: "mask_out"
+  batch_norm_param {
+    use_global_stats: true
+  }
+}
+layer {
+  name: "scale_mask_out"
+  type: "Scale"
+  bottom: "mask_out"
+  top: "mask_out"
+  scale_param {
+    bias_term: true
+  }
+}
+layer {
+  name: "mask_out_relu"
+  type: "ReLU"
+  bottom: "mask_out"
+  top: "mask_out"
+}
+layer {
+  name: "mask_prob"
+  type: "Sigmoid"
+  bottom: "mask_out"
+  top: "mask_prob"
+}

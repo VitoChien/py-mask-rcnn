@@ -40,7 +40,7 @@ class ProposalTargetLayer(caffe.Layer):
         # mask rois (idx, x1, y1, x2, y2)
         top[5].reshape(cfg.TRAIN.BATCH_SIZE, 5, 1, 1)
         # mask rois (idx, x1, y1, x2, y2)
-        top[5].reshape(cfg.TRAIN.BATCH_SIZE, 1, self._mask_h_w, self._mask_h_w)
+        top[6].reshape(cfg.TRAIN.BATCH_SIZE, 1, self._mask_h_w, self._mask_h_w)
 
     def forward(self, bottom, top):
         # Proposal ROIs (0, x1, y1, x2, y2) coming from RPN
@@ -70,7 +70,7 @@ class ProposalTargetLayer(caffe.Layer):
         # print 'proposal_target_layer:', fg_rois_per_image
         labels, rois, bbox_targets, bbox_inside_weights, mask_rois, masks = _sample_rois(
             all_rois, gt_boxes, fg_rois_per_image,
-            rois_per_image, self._num_classes, mask_file, self.mask_h_w)
+            rois_per_image, self._num_classes, mask_file, self._mask_h_w)
 
         if DEBUG:
             print 'num fg: {}'.format((labels > 0).sum())
@@ -120,7 +120,7 @@ class ProposalTargetLayer(caffe.Layer):
         top[5].reshape(*mask_rois.shape)
         top[5].data[...] = mask_rois
 
-        masks = masks.reshape((masks.shape[0], 1, masks[1], masks[2]))
+        masks = masks.reshape((masks.shape[0], 1, masks.shape[1], masks.shape[2]))
         top[6].reshape(*masks.shape)
         top[6].data[...] = masks
 
@@ -200,8 +200,9 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     # foreground RoIs
     # fg_rois_per_this_image = int(min(fg_rois_per_image, fg_inds.size))
     # Sample foreground regions without replacement
+    fg_rois_per_image = int(fg_rois_per_image)
     if fg_inds.size > 0:
-        fg_inds = npr.choice(fg_inds, size=int(fg_rois_per_image), replace=True)
+        fg_inds = npr.choice(fg_inds, size=fg_rois_per_image, replace=True)
 
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
     bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) &
@@ -330,6 +331,8 @@ def get_bboxes_from_mask(mask_in):
     return bboxs
 
 def get_mask(mask_in, roi, size, id_now):
+    roi = roi[1:]
+    # print(roi)
     x_start = int(math.floor(roi[0]))
     x_end = int(math.ceil(roi[2]))
     y_start = int(math.floor(roi[1]))
@@ -353,6 +356,7 @@ def get_mask(mask_in, roi, size, id_now):
 
     patch_cropped = mask_in[y_start:y_end, x_start:x_end].copy()
 
+    # print(patch_cropped.shape)
     patch_cropped_temp = np.array(patch_cropped == id_now, dtype=np.int32)
     mask = cv2.resize(patch_cropped_temp, (size,size), interpolation=cv2.INTER_NEAREST)
     # mask = np.array(patch_resized == id_pick, dtype=np.int32)
