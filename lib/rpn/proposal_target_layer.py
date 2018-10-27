@@ -13,6 +13,7 @@ from fast_rcnn.config import cfg
 from fast_rcnn.bbox_transform import bbox_transform
 from utils.cython_bbox import bbox_overlaps
 import cv2
+import math
 DEBUG = False
 
 class ProposalTargetLayer(caffe.Layer):
@@ -24,6 +25,7 @@ class ProposalTargetLayer(caffe.Layer):
     def setup(self, bottom, top):
         layer_params = yaml.load(self.param_str)
         self._num_classes = layer_params['num_classes']
+        self._mask_h_w = layer_params['out_size']
 
         # sampled rois (0, x1, y1, x2, y2)
         top[0].reshape(cfg.TRAIN.BATCH_SIZE, 5, 1, 1)
@@ -35,6 +37,10 @@ class ProposalTargetLayer(caffe.Layer):
         top[3].reshape(cfg.TRAIN.BATCH_SIZE, self._num_classes * 4, 1, 1)
         # bbox_outside_weights
         top[4].reshape(cfg.TRAIN.BATCH_SIZE, self._num_classes * 4, 1, 1)
+        # mask rois (idx, x1, y1, x2, y2)
+        top[5].reshape(cfg.TRAIN.BATCH_SIZE, 5, 1, 1)
+        # mask rois (idx, x1, y1, x2, y2)
+        top[5].reshape(cfg.TRAIN.BATCH_SIZE, 1, self._mask_h_w, self._mask_h_w)
 
     def forward(self, bottom, top):
         # Proposal ROIs (0, x1, y1, x2, y2) coming from RPN
@@ -62,9 +68,9 @@ class ProposalTargetLayer(caffe.Layer):
         # Sample rois with classification labels and bounding box regression
         # targets
         # print 'proposal_target_layer:', fg_rois_per_image
-        labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
+        labels, rois, bbox_targets, bbox_inside_weights, mask_rois, masks = _sample_rois(
             all_rois, gt_boxes, fg_rois_per_image,
-            rois_per_image, self._num_classes, mask_file)
+            rois_per_image, self._num_classes, mask_file, self.mask_h_w)
 
         if DEBUG:
             print 'num fg: {}'.format((labels > 0).sum())
@@ -105,6 +111,18 @@ class ProposalTargetLayer(caffe.Layer):
         bbox_inside_weights = bbox_inside_weights.reshape((bbox_inside_weights.shape[0], bbox_inside_weights.shape[1], 1, 1))
         top[4].reshape(*bbox_inside_weights.shape)
         top[4].data[...] = np.array(bbox_inside_weights > 0).astype(np.float32)
+
+        bbox_inside_weights = bbox_inside_weights.reshape((bbox_inside_weights.shape[0], bbox_inside_weights.shape[1], 1, 1))
+        top[4].reshape(*bbox_inside_weights.shape)
+        top[4].data[...] = np.array(bbox_inside_weights > 0).astype(np.float32)
+
+        mask_rois = mask_rois.reshape((mask_rois.shape[0], mask_rois.shape[1], 1, 1))
+        top[5].reshape(*mask_rois.shape)
+        top[5].data[...] = mask_rois
+
+        masks = masks.reshape((masks.shape[0], 1, masks[1], masks[2]))
+        top[6].reshape(*masks.shape)
+        top[6].data[...] = masks
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -215,22 +233,15 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
     bbox_targets, bbox_inside_weights = \
         _get_bbox_regression_labels(bbox_target_data, num_classes)
 
-    mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w)
+    mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(rois, mask_file, labels, mask_h_w)
 
-    return labels, rois, bbox_targets, bbox_inside_weights
+    return labels, rois, bbox_targets, bbox_inside_weights, mask_rois, masks
 
 def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
     M = mask_h_w
 
-    polys_gt_inds = np.where(
-        (roidb['gt_classes'] > 0)
-    )[0]
-    # print(roidb.keys())
-
-    boxes= [roidb['boxes'][i] for i in polys_gt_inds]
-    boxes_from_masks = np.zeros((len(boxes), 4), dtype=np.float32)
-    for i in range(len(boxes)):
-        boxes_from_masks[i, :] = boxes[i]
+    mask_file = mask_file[0][0]
+    boxes_from_masks = get_bboxes_from_mask(mask_file)
 
     fg_inds = np.where(labels> 0)[0]
     roi_has_mask = labels.copy()
@@ -239,7 +250,6 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
     # print(mask_file.shape)
     # mask_file = (mask_file[:,:,0] != 0 | mask_file[:,:,1] != 0 | mask_file[:,:,2] != 0)
     # mask_file = (mask_file != [0,0,0])[:,:,0]
-
 
     if fg_inds.shape[0] > 0:
 
@@ -260,6 +270,7 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
         # add fg targets
         for i in range(rois_fg.shape[0]):
             fg_bbox_ind = fg_bbox_inds[i]
+            id_now = fg_bbox_ind
             boxes_from_masks_now=boxes_from_masks[fg_bbox_ind]
             roi_fg = rois_fg[i]
             # im = cv2.imread(roidb['image'])
@@ -284,7 +295,7 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
             # cv2.imwrite("roi_fg_now_mask.jpg", im*999)
             # # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
-            mask = get_mask(mask_file, roi_fg, boxes_from_masks_now, M)
+            mask = get_mask(mask_file, roi_fg, M, id_now)
             mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
             # cv2.imwrite("mask.png", mask*999)
             masks[i, :] = mask
@@ -304,3 +315,45 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
         # Mark that the first roi has a mask
         roi_has_mask[0] = 1
     return rois_fg, roi_has_mask, masks
+
+def get_bboxes_from_mask(mask_in):
+    ids = np.unique(mask_in)
+    bboxs = np.zeros((len(ids), 5))
+    for i, id in enumerate(ids):
+        position_now = (mask_in==id)
+        rows = np.any(position_now, axis=1)
+        cols = np.any(position_now, axis=0)
+        rmin, rmax = np.where(rows)[0][[0, -1]]
+        cmin, cmax = np.where(cols)[0][[0, -1]]
+        bboxs[i, 0] = id
+        bboxs[i, 1:] = [rmin, cmin, rmax, cmax]
+    return bboxs
+
+def get_mask(mask_in, roi, size, id_now):
+    x_start = int(math.floor(roi[0]))
+    x_end = int(math.ceil(roi[2]))
+    y_start = int(math.floor(roi[1]))
+    y_end = int(math.ceil(roi[3]))
+
+    width = mask_in.shape[0]
+    height = mask_in.shape[1]
+    x_start = min(max(0,x_start), height)
+    x_end = min(max(0,x_end), height)
+    y_start = min(max(0,y_start), width)
+    y_end = min(max(0,y_end), width)
+
+    if x_start == x_end:
+        x_end += 1
+    if y_start == y_end:
+        y_end += 1
+    if x_start == mask_in.shape[0]:
+        x_start -= 1
+    if y_start == mask_in.shape[1]:
+        y_start -= 1
+
+    patch_cropped = mask_in[y_start:y_end, x_start:x_end].copy()
+
+    patch_cropped_temp = np.array(patch_cropped == id_now, dtype=np.int32)
+    mask = cv2.resize(patch_cropped_temp, (size,size), interpolation=cv2.INTER_NEAREST)
+    # mask = np.array(patch_resized == id_pick, dtype=np.int32)
+    return mask
