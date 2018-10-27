@@ -807,7 +807,7 @@ class ResNet():
         return self.net.to_proto()
 
 def main():
-    rois_num = 64
+    rois_num = 32
     scales = [32, 64, 128, 256, 512]
     resnet_rpn_test = ResNet(deploy=True, scales = scales)
     resnet_rpn_train_1 = ResNet(deploy=False, scales = scales)

@@ -1,22 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7ff3b93a-9a25-4ce5-ab2e-94e7b7a1dd9e" name="Default Changelist" comment="add end2end training">
+    <list default="true" id="7ff3b93a-9a25-4ce5-ab2e-94e7b7a1dd9e" name="Default Changelist" comment="fix bugs in mask gt cropping">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/caffe-fast-rcnn" beforeDir="false" afterPath="$PROJECT_DIR$/caffe-fast-rcnn" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/caffe-fast-rcnn/python/caffe/pycaffe.py" beforeDir="false" afterPath="$PROJECT_DIR$/caffe-fast-rcnn/python/caffe/pycaffe.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/fast_rcnn/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/fast_rcnn/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/lib/fast_rcnn/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/fast_rcnn/test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/roi_data_layer/minibatch.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/roi_data_layer/minibatch.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib/rpn/proposal_target_layer.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/rpn/proposal_target_layer.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/utils/net_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/lib/utils/net_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/mask_rcnn_test.pt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/mask_rcnn_test.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/rpn_test.pt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/rpn_test.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_mask_rcnn_train.pt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_mask_rcnn_train.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_rpn_train.pt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_rpn_train.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_mask_rcnn_train.pt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_mask_rcnn_train.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_rpn_train.pt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage2_rpn_train.pt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/test.prototxt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/test.prototxt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/train.prototxt" beforeDir="false" afterPath="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/train.prototxt" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -51,31 +42,33 @@
         <counts>
           <entry key="prototxt" value="20" />
           <entry key="pt" value="25" />
-          <entry key="py" value="50" />
-          <entry key="sh" value="22" />
+          <entry key="py" value="52" />
+          <entry key="pyx" value="1" />
+          <entry key="sh" value="23" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="Chameleon" value="25" />
-          <entry key="PLAIN_TEXT" value="42" />
-          <entry key="Python" value="50" />
+          <entry key="Cython" value="1" />
+          <entry key="PLAIN_TEXT" value="43" />
+          <entry key="Python" value="52" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
           <entry key="prototxt" value="35" />
           <entry key="pt" value="15" />
-          <entry key="py" value="4343" />
-          <entry key="sh" value="363" />
-          <entry key="txt" value="127" />
+          <entry key="py" value="4667" />
+          <entry key="sh" value="396" />
+          <entry key="txt" value="162" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Chameleon" value="15" />
-          <entry key="PLAIN_TEXT" value="525" />
-          <entry key="Python" value="4343" />
+          <entry key="PLAIN_TEXT" value="593" />
+          <entry key="Python" value="4667" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.vcs.git.usages" />
@@ -137,8 +130,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/utils/net_generator.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="155">
-              <caret line="801" column="104" lean-forward="true" selection-start-line="801" selection-start-column="104" selection-end-line="801" selection-end-column="104" />
+            <state relative-caret-position="320">
+              <caret line="812" column="62" lean-forward="true" selection-start-line="812" selection-start-column="62" selection-end-line="812" selection-end-column="62" />
               <folding>
                 <element signature="e#0#66#0" expanded="true" />
               </folding>
@@ -146,11 +139,23 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/resnet_mask_end2end.pt">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/lib/rpn/proposal_target_layer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="135">
-              <caret line="9" column="34" lean-forward="true" selection-end-line="2747" />
+            <state relative-caret-position="635">
+              <caret line="195" column="70" selection-start-line="195" selection-start-column="70" selection-end-line="195" selection-end-column="70" />
+              <folding>
+                <element signature="e#265#277#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_remote_end2end.sh">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="15">
+              <caret line="1" column="38" selection-start-line="1" selection-start-column="37" selection-end-line="1" selection-end-column="38" />
             </state>
           </provider>
         </entry>
@@ -158,17 +163,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/train.prototxt">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="858">
-              <caret line="2747" lean-forward="true" selection-start-line="2747" selection-end-line="2747" />
+            <state relative-caret-position="318">
+              <caret line="2715" column="27" lean-forward="true" selection-start-line="2715" selection-start-column="27" selection-end-line="2715" selection-end-column="27" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib/roi_data_layer/minibatch.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="465">
-              <caret line="182" column="21" selection-start-line="182" selection-start-column="14" selection-end-line="182" selection-end-column="21" />
+            <state relative-caret-position="436">
+              <caret line="57" column="43" selection-start-line="57" selection-start-column="43" selection-end-line="57" selection-end-column="43" />
               <folding>
                 <element signature="e#315#333#0" expanded="true" />
               </folding>
@@ -177,10 +182,10 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/resnet_mask_end2end_test.pt">
+        <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/test.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="48">
-              <caret line="2589" column="27" lean-forward="true" selection-start-line="2589" selection-start-column="27" selection-end-line="2589" selection-end-column="27" />
+            <state relative-caret-position="515">
+              <caret line="601" column="78" lean-forward="true" selection-start-line="601" selection-start-column="78" selection-end-line="601" selection-end-column="78" />
             </state>
           </provider>
         </entry>
@@ -198,7 +203,7 @@
         <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_remote_test.sh">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="15">
-              <caret line="1" column="26" selection-start-line="1" selection-start-column="26" selection-end-line="1" selection-end-column="26" />
+              <caret line="1" column="139" selection-start-line="1" selection-start-column="139" selection-end-line="1" selection-end-column="139" />
             </state>
           </provider>
         </entry>
@@ -208,24 +213,6 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="91">
               <caret line="78" column="22" selection-start-line="78" selection-start-column="10" selection-end-line="78" selection-end-column="22" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/lib/roi_data_layer_with_instance/minibatch.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="450">
-              <caret line="104" column="62" selection-start-line="104" selection-start-column="62" selection-end-line="104" selection-end-column="62" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/solver.prototxt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="225">
-              <caret line="15" column="17" lean-forward="true" selection-start-line="15" selection-start-column="17" selection-end-line="15" selection-end-column="17" />
             </state>
           </provider>
         </entry>
@@ -241,13 +228,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>res5a_branch1</find>
-      <find>_get_rois_blob</find>
-      <find>roi</find>
-      <find>ROIAligndet_mask</find>
-      <find>res4f</find>
-      <find>im_seg</find>
-      <find>imdb</find>
       <find>resize</find>
       <find>test_net_mask</find>
       <find>decay_mult</find>
@@ -264,17 +244,28 @@
       <find>_get_mask_rcnn_blobs</find>
       <find>slice</find>
       <find>rois</find>
-      <find>rois_num</find>
       <find>anchor</find>
-      <find>ignore</find>
       <find>USE_PREFETCH</find>
       <find>BATCH_SIZE</find>
       <find>'flipped'</find>
       <find>flipped</find>
+      <find>'boxes'</find>
+      <find>np.ascontiguousarray</find>
+      <find>bbox_overlaps</find>
+      <find>ignore</find>
+      <find>gt</find>
+      <find>gt_boxes</find>
+      <find>im_scale</find>
+      <find>mask_roi</find>
+      <find>rois_num</find>
     </findStrings>
     <replaceStrings>
       <replace>2</replace>
     </replaceStrings>
+    <dirStrings>
+      <dir>$PROJECT_DIR$/lib/utils</dir>
+      <dir>$PROJECT_DIR$/</dir>
+    </dirStrings>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -307,8 +298,6 @@
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/stage1_mask_rcnn_solver30k40k.pt" />
         <option value="$PROJECT_DIR$/experiments/scripts/mask_remote_alt_opt.sh" />
         <option value="$PROJECT_DIR$/lib/utils/net_component.py" />
-        <option value="$PROJECT_DIR$/experiments/scripts/mask_remote_end2end.sh" />
-        <option value="$PROJECT_DIR$/lib/rpn/proposal_target_layer.py" />
         <option value="$PROJECT_DIR$/tools/test_net.py" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/test_mask.prototxt" />
         <option value="$PROJECT_DIR$/experiments/scripts/mask_rcnn_end2end_test.sh" />
@@ -317,12 +306,14 @@
         <option value="$PROJECT_DIR$/lib/roi_data_layer/layer.py" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/solver.prototxt" />
         <option value="$PROJECT_DIR$/lib/fast_rcnn/test.py" />
-        <option value="$PROJECT_DIR$/experiments/scripts/mask_remote_test.sh" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/test.prototxt" />
         <option value="$PROJECT_DIR$/lib/fast_rcnn/config.py" />
-        <option value="$PROJECT_DIR$/lib/utils/net_generator.py" />
         <option value="$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/train.prototxt" />
         <option value="$PROJECT_DIR$/lib/roi_data_layer/minibatch.py" />
+        <option value="$PROJECT_DIR$/experiments/scripts/mask_remote_end2end.sh" />
+        <option value="$PROJECT_DIR$/experiments/scripts/mask_remote_test.sh" />
+        <option value="$PROJECT_DIR$/lib/utils/net_generator.py" />
+        <option value="$PROJECT_DIR$/lib/rpn/proposal_target_layer.py" />
       </list>
     </option>
   </component>
@@ -365,36 +356,13 @@
             <path>
               <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
               <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
-              <item name="models" type="462c0819:PsiDirectoryNode" />
+              <item name="lib" type="462c0819:PsiDirectoryNode" />
+              <item name="rpn" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
               <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
               <item name="models" type="462c0819:PsiDirectoryNode" />
-              <item name="pascal_voc" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
-              <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
-              <item name="models" type="462c0819:PsiDirectoryNode" />
-              <item name="pascal_voc" type="462c0819:PsiDirectoryNode" />
-              <item name="ResNet-50" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
-              <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
-              <item name="models" type="462c0819:PsiDirectoryNode" />
-              <item name="pascal_voc" type="462c0819:PsiDirectoryNode" />
-              <item name="ResNet-50" type="462c0819:PsiDirectoryNode" />
-              <item name="mask_rcnn_alt_opt" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="py-mask-rcnn" type="b2602c69:ProjectViewProjectNode" />
-              <item name="py-mask-rcnn" type="462c0819:PsiDirectoryNode" />
-              <item name="models" type="462c0819:PsiDirectoryNode" />
-              <item name="pascal_voc" type="462c0819:PsiDirectoryNode" />
-              <item name="ResNet-50" type="462c0819:PsiDirectoryNode" />
-              <item name="mask_rcnn_end2end" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -556,7 +524,21 @@
       <option name="project" value="LOCAL" />
       <updated>1540467419313</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="fix bugs in mask gt cropping">
+      <created>1540475586139</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1540475586139</updated>
+    </task>
+    <task id="LOCAL-00014" summary="fix bugs in mask gt cropping">
+      <created>1540486858650</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1540486858650</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TodoView">
@@ -570,6 +552,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="64" y="-4" width="1857" height="1085" extended-state="6" />
+    <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.3041551" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -584,7 +567,7 @@
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" weight="0.32911393" />
       <window_info anchor="bottom" id="Database Changes" order="9" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" />
+      <window_info anchor="bottom" id="Event Log" order="10" side_tool="true" weight="0.32911393" />
       <window_info anchor="bottom" id="Terminal" order="11" weight="0.26476794" />
       <window_info anchor="bottom" id="Python Console" order="12" weight="0.32911393" />
       <window_info anchor="bottom" id="File Transfer" order="13" weight="0.25897714" />
@@ -614,7 +597,8 @@
     <MESSAGE value="add test for mask rcnn" />
     <MESSAGE value="add end2end training" />
     <MESSAGE value="improve test code" />
-    <option name="LAST_COMMIT_MESSAGE" value="improve test code" />
+    <MESSAGE value="fix bugs in mask gt cropping" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix bugs in mask gt cropping" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -628,13 +612,6 @@
     </breakpoint-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/lib/rpn/generate.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="338">
-          <caret line="113" column="38" selection-start-line="113" selection-start-column="38" selection-end-line="113" selection-end-column="38" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tools/test_rpn.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="340">
@@ -812,13 +789,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/rpn/proposal_target_layer.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="599">
-          <caret line="172" column="43" lean-forward="true" selection-start-line="172" selection-start-column="43" selection-end-line="172" selection-end-column="43" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tools/test_net.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1386">
@@ -833,13 +803,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="726">
           <caret line="110" column="9" lean-forward="true" selection-start-line="110" selection-start-column="9" selection-end-line="110" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_remote_end2end.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15">
-          <caret line="1" column="83" selection-start-line="1" selection-start-column="83" selection-end-line="1" selection-end-column="83" />
         </state>
       </provider>
     </entry>
@@ -921,24 +884,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="290">
-          <caret line="601" column="78" lean-forward="true" selection-start-line="601" selection-start-column="78" selection-end-line="601" selection-end-column="78" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/solver.prototxt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="225">
           <caret line="15" column="17" lean-forward="true" selection-start-line="15" selection-start-column="17" selection-end-line="15" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_remote_test.sh">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="15">
-          <caret line="1" column="26" selection-start-line="1" selection-start-column="26" selection-end-line="1" selection-end-column="26" />
         </state>
       </provider>
     </entry>
@@ -949,24 +898,17 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="91">
+          <caret line="78" column="22" selection-start-line="78" selection-start-column="10" selection-end-line="78" selection-end-column="22" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_alt_opt/resnet_mask_end2end.pt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="135">
           <caret line="9" column="34" lean-forward="true" selection-end-line="2747" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/train.prototxt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="858">
-          <caret line="2747" lean-forward="true" selection-start-line="2747" selection-end-line="2747" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/test.prototxt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="388">
-          <caret line="2028" column="5" lean-forward="true" selection-start-line="2028" selection-start-column="5" selection-end-line="2028" selection-end-column="5" />
         </state>
       </provider>
     </entry>
@@ -977,29 +919,70 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/lib/utils/bbox.pyx">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="515">
+          <caret line="601" column="78" lean-forward="true" selection-start-line="601" selection-start-column="78" selection-end-line="601" selection-end-column="78" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/test.prototxt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="388">
+          <caret line="2028" column="5" lean-forward="true" selection-start-line="2028" selection-start-column="5" selection-end-line="2028" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/lib/roi_data_layer/minibatch.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="436">
+          <caret line="57" column="43" selection-start-line="57" selection-start-column="43" selection-end-line="57" selection-end-column="43" />
+          <folding>
+            <element signature="e#315#333#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_remote_end2end.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="38" selection-start-line="1" selection-start-column="37" selection-end-line="1" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/models/pascal_voc/ResNet-50/mask_rcnn_end2end/train.prototxt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="318">
+          <caret line="2715" column="27" lean-forward="true" selection-start-line="2715" selection-start-column="27" selection-end-line="2715" selection-end-column="27" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/experiments/scripts/mask_remote_test.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="139" selection-start-line="1" selection-start-column="139" selection-end-line="1" selection-end-column="139" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/lib/utils/net_generator.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="155">
-          <caret line="801" column="104" lean-forward="true" selection-start-line="801" selection-start-column="104" selection-end-line="801" selection-end-column="104" />
+        <state relative-caret-position="320">
+          <caret line="812" column="62" lean-forward="true" selection-start-line="812" selection-start-column="62" selection-end-line="812" selection-end-column="62" />
           <folding>
             <element signature="e#0#66#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib/fast_rcnn/config.py">
+    <entry file="file://$PROJECT_DIR$/lib/rpn/proposal_target_layer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="91">
-          <caret line="78" column="22" selection-start-line="78" selection-start-column="10" selection-end-line="78" selection-end-column="22" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/lib/roi_data_layer/minibatch.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="465">
-          <caret line="182" column="21" selection-start-line="182" selection-start-column="14" selection-end-line="182" selection-end-column="21" />
+        <state relative-caret-position="635">
+          <caret line="195" column="70" selection-start-line="195" selection-start-column="70" selection-end-line="195" selection-end-column="70" />
           <folding>
-            <element signature="e#315#333#0" expanded="true" />
+            <element signature="e#265#277#0" expanded="true" />
           </folding>
         </state>
       </provider>

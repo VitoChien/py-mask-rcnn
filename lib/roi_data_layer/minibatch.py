@@ -55,7 +55,7 @@ def get_minibatch(roidb, num_classes, mask_h_w):
         masks_blob = np.zeros((0, 14, 14), dtype=np.float32)
         for im_i in xrange(num_images):
             labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, mask_rois, masks \
-                = _sample_rois(roidb[im_i], im_scales[im_i], fg_rois_per_image, rois_per_image,
+                = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image,
                                num_classes, mask_h_w)
             batch_ind_mask =  im_i * np.ones((mask_rois.shape[0], 1))
             mask_rois_blob_this_image = np.hstack((batch_ind_mask, mask_rois))
@@ -75,7 +75,7 @@ def get_minibatch(roidb, num_classes, mask_h_w):
         # all_overlaps = []
         for im_i in xrange(num_images):
             labels, overlaps, im_rois, bbox_targets, bbox_inside_weights, mask_rois, masks \
-                = _sample_rois(roidb[im_i], im_scales[im_i], fg_rois_per_image, rois_per_image,
+                = _sample_rois(roidb[im_i], fg_rois_per_image, rois_per_image,
                                num_classes, mask_h_w)
 
             # Add to RoIs blob
@@ -113,7 +113,7 @@ def get_minibatch(roidb, num_classes, mask_h_w):
 
     return blobs
 
-def _sample_rois(roidb, im_scale, fg_rois_per_image, rois_per_image, num_classes, mask_h_w):
+def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes, mask_h_w):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
@@ -153,18 +153,21 @@ def _sample_rois(roidb, im_scale, fg_rois_per_image, rois_per_image, num_classes
     labels[fg_rois_per_this_image:] = 0
     overlaps = overlaps[keep_inds]
     sampled_boxes = rois[keep_inds]
-    rois = sampled_boxes * im_scale
+    rois = sampled_boxes
 
     bbox_targets, bbox_inside_weights = _get_bbox_regression_labels(
             roidb['bbox_targets'][keep_inds, :], num_classes)
 
     mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(sampled_boxes, roidb, labels, mask_h_w)
-    # mask_rois = mask_rois * im_scale
     #mask_rois = mask_rois[np.newaxis, :]
     return labels, overlaps, rois, bbox_targets, bbox_inside_weights, mask_rois, masks
 
 def _get_mask_rcnn_blobs(sampled_boxes, roidb, labels, mask_h_w):
     M = mask_h_w
+
+    mask_file = cv2.imread(roidb["ins"], cv2.IMREAD_GRAYSCALE)
+    if roidb['flipped']:
+        mask_file = mask_file[:, ::-1]
 
     polys_gt_inds = np.where(
         (roidb['gt_classes'] > 0)
@@ -179,9 +182,6 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, labels, mask_h_w):
     fg_inds = np.where(labels> 0)[0]
     roi_has_mask = labels.copy()
     roi_has_mask[roi_has_mask > 0] = 1
-    mask_file = cv2.imread(roidb["ins"], cv2.IMREAD_GRAYSCALE)
-    if roidb['flipped']:
-        mask_file = mask_file[:, ::-1]
     # print("################")
     # print(mask_file.shape)
     # mask_file = (mask_file[:,:,0] != 0 | mask_file[:,:,1] != 0 | mask_file[:,:,2] != 0)
@@ -207,20 +207,31 @@ def _get_mask_rcnn_blobs(sampled_boxes, roidb, labels, mask_h_w):
         # add fg targets
         for i in range(rois_fg.shape[0]):
             fg_bbox_ind = fg_bbox_inds[i]
-            boxes_from_masks_now=boxes[fg_bbox_ind]
-            roi_fg_now = rois_fg[i]
+            boxes_from_masks_now=boxes_from_masks[fg_bbox_ind]
+            roi_fg = rois_fg[i]
             # im = cv2.imread(roidb['image'])
             # cv2.rectangle(im, (boxes_from_masks_now[0], boxes_from_masks_now[1]), (boxes_from_masks_now[2], boxes_from_masks_now[3]), (0, 255, 0), 2)
             # font = cv2.FONT_HERSHEY_SIMPLEX
-            # cv2.putText(im, 'boxes_from_masks_now', (boxes_from_masks_now[0], boxes_from_masks_now[1]), font, 2, (255, 255, 255), 7)
-            # cv2.rectangle(im, (roi_fg_now[0], roi_fg_now[1]), (roi_fg_now[2], roi_fg_now[3]), (0, 122, 122), 2)
+            # cv2.putText(im, 'boxes_from_masks_now', (boxes_from_masks_now[0], boxes_from_masks_now[1]), font, 2, (255, 255, 255), 2)
+            # cv2.imwrite("boxes_from_masks_now.jpg", im)
+            # im = cv2.imread(roidb['image'])
+            # cv2.rectangle(im, (roi_fg[0], roi_fg[1]), (roi_fg[2], roi_fg[3]), (0, 122, 122), 2)
             # font = cv2.FONT_HERSHEY_SIMPLEX
-            # cv2.putText(im, 'roi_fg_now', (boxes_from_masks_now[0], boxes_from_masks_now[1]), font, 2, (122, 122, 122), 7)
-            # cv2.imwrite("img.jpg", im)
-            # Rasterize the portion of the polygon mask within the given fg roi
+            # cv2.putText(im, 'roi_fg_now', (roi_fg[0], roi_fg[1]), font, 2, (122, 122, 122), 2)
+            # cv2.imwrite("roi_fg_now.jpg", im)
+            # im = mask_file.copy()
+            # cv2.rectangle(im, (boxes_from_masks_now[0], boxes_from_masks_now[1]), (boxes_from_masks_now[2], boxes_from_masks_now[3]), (0, 255, 0), 2)
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # cv2.putText(im, 'boxes_from_masks_now', (boxes_from_masks_now[0], boxes_from_masks_now[1]), font, 2, (255, 255, 255), 2)
+            # cv2.imwrite("boxes_from_masks_now_mask.jpg", im*999)
+            # im = mask_file.copy()
+            # cv2.rectangle(im, (roi_fg[0], roi_fg[1]), (roi_fg[2], roi_fg[3]), (0, 122, 122), 2)
+            # font = cv2.FONT_HERSHEY_SIMPLEX
+            # cv2.putText(im, 'roi_fg_now', (roi_fg[0], roi_fg[1]), font, 2, (122, 122, 122), 2)
+            # cv2.imwrite("roi_fg_now_mask.jpg", im*999)
+            # # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
-            # print(roi_fg)
-            mask = get_mask(mask_file, roi_fg_now, boxes_from_masks_now, M)
+            mask = get_mask(mask_file, roi_fg, boxes_from_masks_now, M)
             mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
             # cv2.imwrite("mask.png", mask*999)
             masks[i, :] = mask
@@ -284,8 +295,11 @@ def get_mask(mask_in, roi, gt_rois, size):
             size_ = arr_new.size
             id_pick = id
 
-    patch_resized = cv2.resize(patch_cropped, (size,size), interpolation=cv2.INTER_NEAREST)
-    mask = np.array(patch_resized == id_pick, dtype=np.int32)
+    patch_cropped_temp = np.array(patch_cropped == id_pick, dtype=np.int32)
+    # cv2.imwrite("patch_cropped_temp.jpg", patch_cropped_temp*99)
+
+    mask = cv2.resize(patch_cropped_temp, (size,size), interpolation=cv2.INTER_NEAREST)
+    # mask = np.array(patch_resized == id_pick, dtype=np.int32)
     return mask
 
 def _get_image_blob(roidb, scale_inds):
