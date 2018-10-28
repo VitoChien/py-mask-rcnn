@@ -274,8 +274,8 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
         # enclosing each segmentation
         rois_fg = sampled_boxes[fg_inds]
         overlaps_bbfg_bbpolys = bbox_overlaps(
-            np.ascontiguousarray(rois_fg, dtype=np.float),
-            np.ascontiguousarray(boxes_from_masks, dtype=np.float)
+            np.ascontiguousarray(rois_fg[:, 1:5], dtype=np.float),
+            np.ascontiguousarray(boxes_from_masks[:, 1:5], dtype=np.float)
         )
         # Map from each fg rois to the index of the mask with highest overlap
         # (measured by bbox overlap)
@@ -306,11 +306,11 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
             # font = cv2.FONT_HERSHEY_SIMPLEX
             # im = mask_file.copy()
             # im = im*100
-            # cv2.rectangle(im, (roi_fg[1], roi_fg[0]), (roi_fg[3], roi_fg[2]), 0, 3)
-            # cv2.putText(im, 'roi_fg_now', (roi_fg[1], roi_fg[0]), font, 2, 123, 2)
+            # cv2.rectangle(im, (roi_fg[1], roi_fg[2]), (roi_fg[3], roi_fg[4]), 0, 3)
+            # cv2.putText(im, 'roi_fg_now', (roi_fg[1], roi_fg[2]), font, 2, 123, 2)
             # cv2.rectangle(im, (boxes_from_masks_now[1], boxes_from_masks_now[2]), (boxes_from_masks_now[3], boxes_from_masks_now[4]), 0, 3)
             # cv2.putText(im, 'boxes_from_masks_now', (boxes_from_masks_now[1], boxes_from_masks_now[2]), font, 2, 123, 2)
-            # cv2.imwrite("roi_fg_now_mask.jpg", im*999)
+            # cv2.imwrite("roi_fg_now_mask.jpg", im*20)
             # # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
             if id_now == 0:

@@ -10,7 +10,7 @@
 __sets = {}
 
 from datasets.pascal_voc import pascal_voc
-from datasets.coco import coco
+# from datasets.coco import coco
 from datasets.imagenet import imagenet
 import numpy as np
 

@@ -285,8 +285,8 @@ def im_seg(net, im, feat, boxes=None):
 
     seg_result = blobs_out['mask_prob']
     # print(seg_result)
-    print(np.unique(seg_result))
-    print(np.unique(feat))
+    # print(np.unique(seg_result))
+    # print(np.unique(feat))
     seg_result = np.array(seg_result > 0.5, dtype=np.int32)
 
     return seg_result
@@ -615,6 +615,7 @@ def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=Fa
             ins_index = 1
             boxes_this_im = all_boxes[j][i][:, :-1]
             seg = im_seg(net_mask, im, feat, boxes_this_im)
+            # print(seg.shape)
             for ii in xrange(seg.shape[0]):
                 seg_now = seg[ii][0]
                 # seg_now = np.transpose(seg_now)
@@ -633,7 +634,7 @@ def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=Fa
         _t['im_seg'].toc()
 
         mask_save_path = os.path.join(save_path, os.path.basename(imdb.image_path_at(i)).replace(".jpg", ".png"))
-        cv2.imwrite(mask_save_path, out_mask)
+        cv2.imwrite(mask_save_path, out_mask*100)
 
         print 'im_seg: {:d}/{:d} {:.3f}s' \
               .format(i + 1, num_images, _t['im_seg'].average_time)
