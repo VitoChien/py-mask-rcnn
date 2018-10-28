@@ -124,6 +124,9 @@ class ProposalTargetLayer(caffe.Layer):
         top[6].reshape(*masks.shape)
         top[6].data[...] = masks
 
+        # print(masks)
+        # print(masks.shape)
+        # print(np.unique(masks))
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
         pass
@@ -235,6 +238,7 @@ def _sample_rois(all_rois, gt_boxes, fg_rois_per_image, rois_per_image, num_clas
         _get_bbox_regression_labels(bbox_target_data, num_classes)
 
     mask_rois, roi_has_mask, masks = _get_mask_rcnn_blobs(rois, mask_file, labels, mask_h_w)
+    # input()
 
     return labels, rois, bbox_targets, bbox_inside_weights, mask_rois, masks
 
@@ -242,7 +246,16 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
     M = mask_h_w
 
     mask_file = mask_file[0][0]
+    # get gt bboxes from mask
+    # return num_ids * [id, x0, y0, x1, y1]
     boxes_from_masks = get_bboxes_from_mask(mask_file)
+    # im = mask_file.copy()
+    # im = im*20
+    # for bbox in boxes_from_masks:
+    #     cv2.rectangle(im, (int(bbox[1]), int(bbox[2])), (int(bbox[3]), int(bbox[4])), 255, 2)
+    #     font = cv2.FONT_HERSHEY_SIMPLEX
+    #     cv2.putText(im, str(int(bbox[0])), (int(bbox[1]), int(bbox[2])), font, 1, 255, 1)
+    # cv2.imwrite("mask_gt.png", im)
 
     fg_inds = np.where(labels> 0)[0]
     roi_has_mask = labels.copy()
@@ -271,8 +284,9 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
         # add fg targets
         for i in range(rois_fg.shape[0]):
             fg_bbox_ind = fg_bbox_inds[i]
-            id_now = fg_bbox_ind
             boxes_from_masks_now=boxes_from_masks[fg_bbox_ind]
+            boxes_from_masks_now = boxes_from_masks_now.astype(np.uint16)
+            id_now = boxes_from_masks_now[0]
             roi_fg = rois_fg[i]
             # im = cv2.imread(roidb['image'])
             # cv2.rectangle(im, (boxes_from_masks_now[0], boxes_from_masks_now[1]), (boxes_from_masks_now[2], boxes_from_masks_now[3]), (0, 255, 0), 2)
@@ -289,16 +303,24 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
             # font = cv2.FONT_HERSHEY_SIMPLEX
             # cv2.putText(im, 'boxes_from_masks_now', (boxes_from_masks_now[0], boxes_from_masks_now[1]), font, 2, (255, 255, 255), 2)
             # cv2.imwrite("boxes_from_masks_now_mask.jpg", im*999)
-            # im = mask_file.copy()
-            # cv2.rectangle(im, (roi_fg[0], roi_fg[1]), (roi_fg[2], roi_fg[3]), (0, 122, 122), 2)
             # font = cv2.FONT_HERSHEY_SIMPLEX
-            # cv2.putText(im, 'roi_fg_now', (roi_fg[0], roi_fg[1]), font, 2, (122, 122, 122), 2)
+            # im = mask_file.copy()
+            # im = im*100
+            # cv2.rectangle(im, (roi_fg[1], roi_fg[0]), (roi_fg[3], roi_fg[2]), 0, 3)
+            # cv2.putText(im, 'roi_fg_now', (roi_fg[1], roi_fg[0]), font, 2, 123, 2)
+            # cv2.rectangle(im, (boxes_from_masks_now[1], boxes_from_masks_now[2]), (boxes_from_masks_now[3], boxes_from_masks_now[4]), 0, 3)
+            # cv2.putText(im, 'boxes_from_masks_now', (boxes_from_masks_now[1], boxes_from_masks_now[2]), font, 2, 123, 2)
             # cv2.imwrite("roi_fg_now_mask.jpg", im*999)
             # # Rasterize the portion of the polygon mask within the given fg roi
             # to an M x M binary image
-            mask = get_mask(mask_file, roi_fg, M, id_now)
-            mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
-            # cv2.imwrite("mask.png", mask*999)
+            if id_now == 0:
+                mask = -np.ones((M, M))
+            else:
+                mask = get_mask(mask_file, roi_fg, M, id_now)
+                mask = np.array(mask > 0, dtype=np.int32)  # Ensure it's binary
+            # cv2.imwrite("mask_org.png", im)
+            # cv2.imwrite("mask_crop.png", mask*999)
+            # print("id_now: {}".format(id_now))
             masks[i, :] = mask
             # input()
             # masks[i, :] = np.reshape(mask, (M, M))
@@ -319,11 +341,13 @@ def _get_mask_rcnn_blobs(sampled_boxes, mask_file, labels, mask_h_w):
 
 def get_bboxes_from_mask(mask_in):
     ids = np.unique(mask_in)
+    index = (ids != 0)
+    ids = ids[index]
     bboxs = np.zeros((len(ids), 5))
     for i, id in enumerate(ids):
         position_now = (mask_in==id)
-        rows = np.any(position_now, axis=1)
-        cols = np.any(position_now, axis=0)
+        rows = np.any(position_now, axis=0)
+        cols = np.any(position_now, axis=1)
         rmin, rmax = np.where(rows)[0][[0, -1]]
         cmin, cmax = np.where(cols)[0][[0, -1]]
         bboxs[i, 0] = id

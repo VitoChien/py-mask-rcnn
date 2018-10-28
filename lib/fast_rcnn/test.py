@@ -277,13 +277,16 @@ def im_seg(net, im, feat, boxes=None):
     net.blobs['rois'].reshape(*(blobs['rois'].shape))
 
     # do forward
+    # print(feat)
     net.blobs['res4f'].data[...] = feat
     net.blobs['rois'].data[...] = blobs['rois']
     forward_kwargs = {'rois': blobs['rois'].astype(np.float32, copy=False), 'res4f': feat}
     blobs_out = net.forward()
 
     seg_result = blobs_out['mask_prob']
-    # print(np.unique(seg_result))
+    # print(seg_result)
+    print(np.unique(seg_result))
+    print(np.unique(feat))
     seg_result = np.array(seg_result > 0.5, dtype=np.int32)
 
     return seg_result
