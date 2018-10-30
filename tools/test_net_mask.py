@@ -10,7 +10,7 @@
 """Test a Fast R-CNN network on an image database."""
 
 import _init_paths
-from fast_rcnn.test import test_net_mask
+from fast_rcnn.test import test_net_mask, test_net_mask_reload
 from fast_rcnn.config import cfg, cfg_from_file, cfg_from_list
 from datasets.factory import get_imdb
 import caffe
@@ -103,4 +103,6 @@ if __name__ == '__main__':
         if cfg.TEST.PROPOSAL_METHOD == 'rpn':
             imdb.config['rpn_file'] = args.rpn_file
 
-    test_net_mask(net, net_mask, imdb, max_per_image=args.max_per_image, vis=args.vis, save_path=args.mask_out_path)
+    test_net_mask_reload(args.prototxt, args.prototxt_mask, args.caffemodel, imdb, max_per_image=args.max_per_image,\
+                         vis=args.vis, save_path=args.mask_out_path)
+    # test_net_mask(net, net_mask, imdb, max_per_image=args.max_per_image, vis=args.vis, save_path=args.mask_out_path)

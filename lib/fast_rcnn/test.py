@@ -13,6 +13,8 @@ import argparse
 from utils.timer import Timer
 import numpy as np
 import cv2
+import os
+os.environ['GLOG_minloglevel'] = '2'
 import caffe
 from fast_rcnn.nms_wrapper import nms
 import cPickle
@@ -224,6 +226,7 @@ def im_det(net, im, boxes=None):
         net.blobs['rois'].reshape(*(blobs['rois'].shape))
 
     # do forward
+    print(im_blob.shape)
     forward_kwargs = {'data': blobs['data'].astype(np.float32, copy=False)}
     if cfg.TEST.HAS_RPN:
         forward_kwargs['im_info'] = blobs['im_info'].astype(np.float32, copy=False)
@@ -574,6 +577,7 @@ def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=Fa
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
 
         im = cv2.imread(imdb.image_path_at(i))
+        print(im.shape)
         _t['im_detect'].tic()
         scores, boxes, feat = im_det(net, im, box_proposals)
         _t['im_detect'].toc()
@@ -638,6 +642,129 @@ def test_net_mask(net, net_mask, imdb, max_per_image=400, thresh=-np.inf, vis=Fa
 
         print 'im_seg: {:d}/{:d} {:.3f}s' \
               .format(i + 1, num_images, _t['im_seg'].average_time)
+
+    det_file = os.path.join(output_dir, 'detections.pkl')
+    with open(det_file, 'wb') as f:
+        cPickle.dump(all_boxes, f, cPickle.HIGHEST_PROTOCOL)
+
+    print 'Evaluating detections'
+    imdb.evaluate_detections(all_boxes, output_dir)
+
+
+def test_net_mask_reload(net_proto, net_mask_proto, weights, imdb, max_per_image=400, thresh=-np.inf, vis=False, save_path="./output/"):
+    """Test a Fast R-CNN network on an image database."""
+    num_images = len(imdb.image_index)
+    # all detections are collected into:
+    #    all_boxes[cls][image] = N x 5 array of detections in
+    #    (x1, y1, x2, y2, score)
+
+    caffe.set_mode_gpu()
+    caffe.set_device(cfg.GPU_ID)
+
+
+    all_boxes = [[[] for _ in xrange(num_images)]
+                 for _ in xrange(imdb.num_classes)]
+
+    net = caffe.Net(net_proto, weights, caffe.TEST)
+    net.name = os.path.splitext(os.path.basename(weights))[0]
+    output_dir = get_output_dir(imdb, net)
+
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # timers
+    _t = {'im_detect' : Timer(), 'im_seg' : Timer(),'misc' : Timer()}
+
+    if not cfg.TEST.HAS_RPN:
+        roidb = imdb.roidb
+
+    del net
+    for i in xrange(num_images):
+        # filter out any ground truth boxes
+        if cfg.TEST.HAS_RPN:
+            box_proposals = None
+        else:
+            # The roidb may contain ground-truth rois (for example, if the roidb
+            # comes from the training or val split). We only want to evaluate
+            # detection on the *non*-ground-truth rois. We select those the rois
+            # that have the gt_classes field set to 0, which means there's no
+            # ground truth.
+            box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
+
+        net = caffe.Net(net_proto, weights, caffe.TEST)
+        net.name = os.path.splitext(os.path.basename(weights))[0]
+        im = cv2.imread(imdb.image_path_at(i))
+        print(im.shape)
+        _t['im_detect'].tic()
+        scores, boxes, feat = im_det(net, im, box_proposals)
+        _t['im_detect'].toc()
+
+        _t['misc'].tic()
+        # skip j = 0, because it's the background class
+        for j in xrange(1, imdb.num_classes):
+            inds = np.where(scores[:, j] > thresh)[0]
+            cls_scores = scores[inds, j]
+            if cfg.TEST.AGNOSTIC:
+                cls_boxes = boxes[inds, 4:8]
+            else:
+                cls_boxes = boxes[inds, j*4:(j+1)*4]
+            cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+                .astype(np.float32, copy=False)
+            keep = nms(cls_dets, cfg.TEST.NMS)
+            cls_dets = cls_dets[keep, :]
+            if vis:
+                vis_detections(im, imdb.classes[j], cls_dets)
+            all_boxes[j][i] = cls_dets
+
+        # Limit to max_per_image detections *over all classes*
+        if max_per_image > 0:
+            image_scores = np.hstack([all_boxes[j][i][:, -1]
+                                      for j in xrange(1, imdb.num_classes)])
+            if len(image_scores) > max_per_image:
+                image_thresh = np.sort(image_scores)[-max_per_image]
+                for j in xrange(1, imdb.num_classes):
+                    keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
+                    all_boxes[j][i] = all_boxes[j][i][keep, :]
+
+        print 'im_detection: {:d}/{:d} {:.3f}s {:.3f}s' \
+              .format(i + 1, num_images, _t['im_detect'].average_time,
+                      _t['misc'].average_time)
+        del net
+
+        net_mask = caffe.Net(net_mask_proto, weights, caffe.TEST)
+        net_mask.name = os.path.splitext(os.path.basename(weights))[0]
+        _t['im_seg'].tic()
+        out_mask = np.zeros((im.shape[0], im.shape[1]))
+        for j in xrange(1, imdb.num_classes):
+            ins_index = 1
+            boxes_this_im = all_boxes[j][i][:, :-1]
+            seg = im_seg(net_mask, im, feat, boxes_this_im)
+            # print(seg.shape)
+            for ii in xrange(seg.shape[0]):
+                seg_now = seg[ii][0]
+                # seg_now = np.transpose(seg_now)
+                box_now = boxes_this_im[ii]
+                box_now = box_now.astype(int)
+                if box_now[2] == box_now[0] or box_now[3] == box_now[1]:
+                    continue
+                # im_now=im[box_now[1]: box_now[3], box_now[0]:box_now[2]]
+                # cv2.imshow("test", im_now)
+                # cv2.waitKey()
+                seg_org_size = cv2.resize(seg_now, (box_now[2] - box_now[0], box_now[3] - box_now[1]), interpolation=cv2.INTER_NEAREST)
+                # print((seg_org_size*99999).shape)
+                # cv2.imshow("seg", seg_org_size*99999)
+                # cv2.waitKey()
+                seg_org_size = seg_org_size*ins_index
+                out_mask[box_now[1]: box_now[3], box_now[0]:box_now[2]] = seg_org_size
+                ins_index += 1
+        _t['im_seg'].toc()
+
+        mask_save_path = os.path.join(save_path, os.path.basename(imdb.image_path_at(i)).replace(".jpg", ".png"))
+        cv2.imwrite(mask_save_path, out_mask*10)
+
+        print 'im_seg: {:d}/{:d} {:.3f}s' \
+              .format(i + 1, num_images, _t['im_seg'].average_time)
+        del net_mask
 
     det_file = os.path.join(output_dir, 'detections.pkl')
     with open(det_file, 'wb') as f:

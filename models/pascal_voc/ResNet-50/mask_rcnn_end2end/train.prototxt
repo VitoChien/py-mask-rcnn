@@ -2012,7 +2012,7 @@ layer {
   python_param {
     module: "rpn.anchor_target_layer"
     layer: "AnchorTargetLayer"
-    param_str: "{\"feat_stride\": 16,\"scales\": [32, 64, 128, 256, 512]}"
+    param_str: "{\"feat_stride\": 16,\"scales\": [2, 4, 8, 16, 32]}"
   }
 }
 layer {
@@ -2072,7 +2072,7 @@ layer {
   python_param {
     module: "rpn.proposal_layer"
     layer: "ProposalLayer"
-    param_str: "{\"feat_stride\": 16,\"scales\": [32, 64, 128, 256, 512]}"
+    param_str: "{\"feat_stride\": 16,\"scales\": [2, 4, 8, 16, 32]}"
   }
 }
 layer {
@@ -2091,7 +2091,7 @@ layer {
   python_param {
     module: "rpn.proposal_target_layer"
     layer: "ProposalTargetLayer"
-    param_str: "{\"num_classes\": 2,\"out_size\": 14}"
+    param_str: "{\"num_classes\": 2,\"out_size\": 28}"
   }
 }
 layer {
@@ -2111,8 +2111,8 @@ layer {
   bottom: "rois_cat"
   top: "ROIAligndet_mask"
   roi_align_param {
-    pooled_h: 7
-    pooled_w: 7
+    pooled_h: 14
+    pooled_w: 14
     spatial_scale: 0.0625
   }
 }
@@ -2558,7 +2558,7 @@ layer {
   top: "mask_feat"
   slice_param {
     slice_dim: 0
-    slice_point: 64
+    slice_point: 16
   }
 }
 layer {

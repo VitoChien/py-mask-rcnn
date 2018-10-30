@@ -29,8 +29,8 @@ layer {
   bottom: "rois"
   top: "ROIAligndet_mask"
   roi_align_param {
-    pooled_h: 7
-    pooled_w: 7
+    pooled_h: 14
+    pooled_w: 14
     spatial_scale: 0.0625
   }
 }
@@ -482,6 +482,7 @@ layer {
     weight_filler {
       type: "msra"
     }
+    engine: CUDNN
   }
 }
 layer {

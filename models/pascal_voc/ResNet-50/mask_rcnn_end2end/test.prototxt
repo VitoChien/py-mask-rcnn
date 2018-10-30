@@ -2040,7 +2040,7 @@ layer {
   python_param {
     module: "rpn.proposal_layer"
     layer: "ProposalLayer"
-    param_str: "{\"feat_stride\": 16,\"scales\": [32, 64, 128, 256, 512]}"
+    param_str: "{\"feat_stride\": 16,\"scales\": [2, 4, 8, 16, 32]}"
   }
 }
 layer {
@@ -2050,8 +2050,8 @@ layer {
   bottom: "rois"
   top: "ROIAligndet_mask"
   roi_align_param {
-    pooled_h: 7
-    pooled_w: 7
+    pooled_h: 14
+    pooled_w: 14
     spatial_scale: 0.0625
   }
 }
@@ -2551,91 +2551,4 @@ layer {
   type: "Softmax"
   bottom: "cls_score"
   top: "cls_prob"
-}
-layer {
-  name: "mask_deconv1"
-  type: "Deconvolution"
-  bottom: "res5c"
-  top: "Deconvolution1"
-  convolution_param {
-    num_output: 256
-    bias_term: false
-    pad: 0
-    kernel_size: 2
-    stride: 2
-    weight_filler {
-      type: "msra"
-    }
-  }
-}
-layer {
-  name: "bn_mask_deconv1"
-  type: "BatchNorm"
-  bottom: "Deconvolution1"
-  top: "Deconvolution1"
-  batch_norm_param {
-    use_global_stats: true
-  }
-}
-layer {
-  name: "scale_mask_deconv1"
-  type: "Scale"
-  bottom: "Deconvolution1"
-  top: "Deconvolution1"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
-  name: "mask_deconv1_relu"
-  type: "ReLU"
-  bottom: "Deconvolution1"
-  top: "Deconvolution1"
-}
-layer {
-  name: "mask_out"
-  type: "Convolution"
-  bottom: "Deconvolution1"
-  top: "mask_out"
-  convolution_param {
-    num_output: 1
-    bias_term: true
-    pad: 0
-    kernel_size: 1
-    stride: 1
-    weight_filler {
-      type: "msra"
-    }
-    engine: CUDNN
-  }
-}
-layer {
-  name: "bn_mask_out"
-  type: "BatchNorm"
-  bottom: "mask_out"
-  top: "mask_out"
-  batch_norm_param {
-    use_global_stats: true
-  }
-}
-layer {
-  name: "scale_mask_out"
-  type: "Scale"
-  bottom: "mask_out"
-  top: "mask_out"
-  scale_param {
-    bias_term: true
-  }
-}
-layer {
-  name: "mask_out_relu"
-  type: "ReLU"
-  bottom: "mask_out"
-  top: "mask_out"
-}
-layer {
-  name: "mask_prob"
-  type: "Sigmoid"
-  bottom: "mask_out"
-  top: "mask_prob"
 }

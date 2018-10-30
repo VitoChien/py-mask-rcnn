@@ -8,7 +8,7 @@ from caffe import layers as L, params as P, to_proto
 
 class ResNet(): 
     def __init__(self, stages=[3, 4, 6, 3], channals=64, deploy=False, classes = 2, feat_stride = 16, \
-                 pooled_size=[7, 7], out_size=[14, 14], module = "normal", pooling = "align", scales=[4, 8, 16, 32], ratio=[0.5, 1, 2], rois_num=128):
+                 pooled_size=[14, 14], out_size=[28, 28], module = "normal", pooling = "align", scales=[4, 8, 16, 32], ratio=[0.5, 1, 2], rois_num=128):
         self.stages = stages
         self.channals = channals
         self.deploy = deploy
@@ -823,8 +823,8 @@ class ResNet():
         return self.net.to_proto()
 
 def main():
-    rois_num = 64
-    scales = [32, 64, 128, 256, 512]
+    rois_num = 16
+    scales = [2, 4, 8, 16, 32]
     # resnet_rpn_test = ResNet(deploy=True, scales = scales)
     # resnet_rpn_train_1 = ResNet(deploy=False, scales = scales)
     # resnet_rpn_train_2 = ResNet(deploy=False, scales = scales)
